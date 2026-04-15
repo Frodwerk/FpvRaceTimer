@@ -24,7 +24,7 @@ Datenschutz: Die Videoanalyse findet ausschließlich lokal in deinem Browser sta
 Präzision: Da die Erkennung auf optischer Pixelveränderung basiert, kann die Genauigkeit je nach Lichtverhältnissen und Kameraqualität variieren. Das Tool ist für Training und Hobby-Rennen optimiert, nicht für professionelle Meisterschaften.
 
 ⚖️ Lizenz & Urheberrecht
-© 2026 [frodwerk]. Alle Rechte vorbehalten.
+© 2026 [Frodwerk]. Alle Rechte vorbehalten.
 Die Nutzung des Codes ist für private Zwecke gestattet. Eine Vervielfältigung, Veröffentlichung oder kommerzielle Nutzung des Codes ohne ausdrückliche Zustimmung des Urhebers ist untersagt.
 
 Tipps für die beste Performance
