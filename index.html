@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FPV Pro Race Timer - V4.4 (Table Import)</title>
+  <title>FPV Pro Race Timer - V4.5 (Record Voice)</title>
   <style>
     :root {
       --primary: #10b981;
@@ -552,6 +552,10 @@
     const lapTime = (now - state.lastPassTime) / 1000;
     state.lastPassTime = now;
     
+    // Alte Bestwerte speichern für Vergleich
+    const oldBestLap = state.bestLap;
+    const oldBestTriple = state.bestTriple;
+
     const fullDate = new Date();
     state.laps.push({
       id: Date.now(),
@@ -565,12 +569,20 @@
 
     recalculateAndUI();
     
+    // Prüfen ob Rekorde gebrochen wurden
+    const isNewLapRecord = state.bestLap < oldBestLap && state.bestLap !== Infinity;
+    const isNewTripleRecord = state.bestTriple < oldBestTriple && state.bestTriple !== Infinity;
+
     const activeLaps = state.laps.filter(l => l.active);
     const lastActiveLap = activeLaps[activeLaps.length - 1];
     const displayTime = lastActiveLap ? lastActiveLap.displayTime : lapTime;
 
-    if (displayTime < state.bestLap) announce("Bestzeit " + displayTime.toFixed(1));
-    else announce(displayTime.toFixed(1));
+    let voiceMsg = "";
+    if (isNewLapRecord) voiceMsg += "Neue Bestzeit. ";
+    if (isNewTripleRecord) voiceMsg += "Neuer Triple Rekord. ";
+    voiceMsg += displayTime.toFixed(1);
+
+    announce(voiceMsg);
   }
 
   function toggleLap(lapId) {
@@ -663,8 +675,9 @@
   }
 
   function announce(txt) {
+    if (!txt) return;
     const msg = new SpeechSynthesisUtterance(txt);
-    msg.lang = 'de-DE'; msg.rate = 1.7; window.speechSynthesis.speak(msg);
+    msg.lang = 'de-DE'; msg.rate = 1.6; window.speechSynthesis.speak(msg);
   }
 
   function clearSession() {
@@ -716,17 +729,14 @@
     let importedCount = 0;
 
     lines.forEach((line, index) => {
-      // Header überspringen
       if (index === 0 && (line.includes('Runde') || line.includes('Datum'))) return;
 
-      // Trenner erkennen (Semikolon, Tab oder Komma)
       let parts = [];
       if (line.includes(';')) parts = line.split(';');
       else if (line.includes('\t')) parts = line.split('\t');
       else parts = line.split(',');
 
       if (parts.length >= 4) {
-        // Dauer parsen (Komma zu Punkt wandeln)
         let timeStr = parts[3].trim().replace(',', '.').replace('s', '');
         let time = parseFloat(timeStr);
         let statusStr = parts[4] ? parts[4].trim().toLowerCase() : 'aktiv';
@@ -738,7 +748,7 @@
             active: statusStr !== 'ignoriert' && statusStr !== 'deaktiviert',
             date: parts[1].trim(),
             timestamp: parts[2].trim(),
-            preImg: null, // Bilder können via Text nicht übertragen werden
+            preImg: null, 
             postImg: null
           });
           importedCount++;
