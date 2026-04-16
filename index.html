@@ -5,213 +5,287 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FPV Pro Race Timer - Professional Edition</title>
   <style>
+    :root {
+      --primary: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --bg: #f0f2f5;
+      --card-bg: #ffffff;
+    }
+
     body {
       margin: 0;
-      padding: 20px;
+      padding: 10px;
       font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f0f2f5;
+      background-color: var(--bg);
       color: #333;
     }
+
     .container {
       max-width: 1000px;
       margin: auto;
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      padding: 25px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 15px;
     }
+
+    header {
+      display: flex; 
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    @media (min-width: 600px) {
+      header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+      body { padding: 20px; }
+      .container { padding: 25px; }
+    }
+
     .video-container {
       position: relative;
       background: #000;
-      border-radius: 15px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      width: 100%;
       aspect-ratio: 4 / 3;
     }
+
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+      object-fit: contain;
     }
+
+    /* Buttons */
     button {
       transition: all 0.2s ease;
       font-weight: 600;
-      letter-spacing: 0.5px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
     }
-    button:active {
-      transform: scale(0.96);
+
+    button:active { transform: scale(0.96); }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
     }
+
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: 1fr 1fr auto; }
+    }
+
     .stat-card {
       background: #f8f9fa;
       border: 1px solid #e9ecef;
-      padding: 15px;
+      padding: 12px;
       border-radius: 12px;
       text-align: center;
-      flex: 1;
     }
-    .motion-meter-container {
-      height: 6px;
-      background: #eee;
-      width: 100%;
-      margin-top: 10px;
-      border-radius: 3px;
-      overflow: hidden;
+
+    .stat-card strong {
+      display: block;
+      font-size: 20px;
+      margin-top: 4px;
     }
-    #motionMeter {
-      height: 100%;
-      width: 0%;
-      background: #28a745;
-      transition: width 0.1s;
-    }
+
+    /* Form Grid */
     .settings-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: 1fr;
       gap: 12px;
-      margin: 25px 0;
+      margin: 20px 0;
     }
+
+    @media (min-width: 768px) {
+      .settings-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
     .input-group {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
+
+    label { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; }
+    
     input, select {
-      padding: 12px;
-      border-radius: 10px;
+      padding: 10px;
+      border-radius: 8px;
       border: 1px solid #ced4da;
-      background: #fff;
-      font-weight: bold;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
     }
+
+    /* Table Container */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      margin-top: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+
+    th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 13px; }
+    td { padding: 10px 12px; border-top: 1px solid #eee; font-size: 14px; vertical-align: middle; }
+
+    .snapshot-img {
+      width: 50px;
+      height: 38px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: #eee;
+    }
+
+    /* Overlays */
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+
+    #countdownOverlay { background: rgba(0,0,0,0.8); color: #fff; font-size: 120px; font-weight: bold; }
+    #waitingOverlay { background: rgba(40,167,69,0.3); color: #fff; text-align: center; pointer-events: none; }
+
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
+      z-index: 2000;
+      align-items: center; justify-content: center;
+      padding: 15px;
     }
+
     .modal-content {
       background: white;
       padding: 20px;
-      border-radius: 15px;
-      width: 90%;
+      border-radius: 16px;
+      width: 100%;
       max-width: 500px;
     }
-    .lang-switch {
-      background: #e9ecef;
-      border-radius: 20px;
-      padding: 5px;
-      display: flex;
-      gap: 5px;
+
+    .motion-meter-container {
+      height: 6px; background: #eee; width: 100%; margin-top: 10px; border-radius: 3px; overflow: hidden;
     }
-    .lang-btn {
-      border: none;
-      padding: 5px 12px;
-      border-radius: 15px;
-      cursor: pointer;
-      font-size: 12px;
-      background: transparent;
-      color: #666;
-    }
-    .lang-btn.active {
-      background: #fff;
-      color: #000;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+    #motionMeter { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s; }
+
+    .lang-switch { background: #e9ecef; border-radius: 20px; padding: 4px; display: flex; gap: 4px; }
+    .lang-btn { padding: 4px 10px; border-radius: 16px; font-size: 11px; background: transparent; color: #666; }
+    .lang-btn.active { background: #fff; color: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2 style="margin: 0; color: #1a1a1a;" data-i18n="title">🏁 FPV Pro Race Timer</h2>
-      <div style="display: flex; align-items: center; gap: 15px;">
+    <header>
+      <h2 style="margin: 0; font-size: 20px;" data-i18n="title">🏁 FPV Race Timer</h2>
+      <div style="display: flex; align-items: center; gap: 10px; justify-content: space-between;">
         <div class="lang-switch">
           <button id="lang-de" class="lang-btn active" onclick="setLanguage('de')">DE</button>
           <button id="lang-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
         </div>
-        <div id="connectionStatus" style="font-size: 12px; color: #28a745;" data-i18n="cam_active">● Kamera Aktiv</div>
+        <div id="connectionStatus" style="font-size: 11px; color: var(--primary); font-weight: bold;" data-i18n="cam_active">● Kamera Aktiv</div>
       </div>
-    </div>
+    </header>
 
     <div class="video-container">
       <canvas id="canvasElement" width="640" height="480"></canvas>
       <video id="videoElement" style="display: none;" playsinline></video>
       
-      <div id="countdownOverlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; align-items:center; justify-content:center; background:rgba(0,0,0,0.7); color:#fff; font-size:140px; font-weight:bold; z-index: 10;">
+      <div id="countdownOverlay" class="overlay" style="display: none;">
         <span id="countdownValue">3</span>
       </div>
 
-      <div id="waitingOverlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; align-items:center; justify-content:center; background:rgba(40,167,69,0.3); color:#fff; font-size:32px; font-weight:bold; text-align: center; z-index: 5; pointer-events: none;">
+      <div id="waitingOverlay" class="overlay" style="display: none;">
         <div style="text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
-          <span data-i18n="armed">SCHARF GESCHALTET</span><br>
-          <span style="font-size: 18px; font-weight: normal;" data-i18n="start_trigger">Start bei erstem Durchflug</span>
+          <div style="font-size: 24px; font-weight: bold;" data-i18n="armed">SCHARF GESCHALTET</div>
+          <div style="font-size: 14px;" data-i18n="start_trigger">Start bei Durchflug</div>
         </div>
       </div>
     </div>
 
-    <div class="motion-meter-container" title="Bewegungs-Intensität">
+    <div class="motion-meter-container">
       <div id="motionMeter"></div>
     </div>
 
     <div class="settings-grid">
       <div class="input-group">
-        <label style="font-size: 12px; color: #666; font-weight: bold;" data-i18n="camera_select">KAMERA WÄHLEN</label>
+        <label data-i18n="camera_select">Kamera</label>
         <select id="cameraSelect" onchange="switchCamera(this.value)">
-          <option value="" data-i18n="loading_cameras">Kameras werden geladen...</option>
+          <option value="" data-i18n="loading_cameras">Laden...</option>
         </select>
       </div>
       <div class="input-group">
-        <label style="font-size: 12px; color: #666; font-weight: bold;" data-i18n="direction">RICHTUNG</label>
+        <label data-i18n="direction">Richtung</label>
         <select id="directionSelect" onchange="updateDirection(this.value)">
           <optgroup label="Horizontal" data-label-i18n="horizontal">
             <option value="L->R">L ➔ R</option>
             <option value="R->L">R ⬅ L</option>
           </optgroup>
           <optgroup label="Vertikal" data-label-i18n="vertical">
-            <option value="O->U">Oben ➔ Unten</option>
-            <option value="U->O">Unten ⬅ Oben</option>
+            <option value="O->U">Oben ➔ U</option>
+            <option value="U->O">Unten ⬅ O</option>
           </optgroup>
         </select>
       </div>
       <div class="input-group">
-        <label style="font-size: 12px; color: #666; font-weight: bold;" data-i18n="min_lap">MIN. RUNDENZEIT (S)</label>
+        <label data-i18n="min_lap">Min. Runde (s)</label>
         <input type="number" id="minLapTimeInput" value="1.5" step="0.1" min="0.1">
       </div>
-      <button id="startBtn" onclick="startCountdown()" style="padding:12px; background:#28a745; color:white; border:none; border-radius:10px; cursor:pointer; font-size: 16px; align-self: end;" data-i18n="btn_start">
-        START RENNEN
-      </button>
-      <button id="stopBtn" onclick="stopRace()" style="display: none; padding:12px; background:#dc3545; color:white; border:none; border-radius:10px; cursor:pointer; font-size: 16px; align-self: end;" data-i18n="btn_stop">
-        STOPP / PAUSE
-      </button>
-    </div>
-
-    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
-      <div class="stat-card" style="border-left: 5px solid #ffc107;">
-        <small style="text-transform: uppercase; font-size: 11px; color: #666;" data-i18n="fastest_lap">Schnellste Runde</small><br>
-        <strong id="bestLapDisplay" style="font-size: 24px;">---</strong>
-      </div>
-      <div class="stat-card" style="border-left: 5px solid #17a2b8; background: #fff3cd;">
-        <small style="text-transform: uppercase; font-size: 11px; color: #856404;" data-i18n="best_triple">Bestes Triple (3)</small><br>
-        <strong id="bestTripleSum" style="font-size: 24px; color: #856404;">---</strong>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 5px;">
-        <div style="display: flex; gap: 5px;">
-          <button onclick="copyData()" style="flex:1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;" data-i18n="btn_copy">📋 Kopieren</button>
-          <button onclick="showImportModal()" style="flex:1; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;" data-i18n="btn_import">📥 Import</button>
-        </div>
-        <button id="clearBtn" onclick="clearSession()" style="padding: 12px 20px; background: #eee; color: #333; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;" data-i18n="btn_clear">🗑️ Liste Leeren</button>
+      <div class="input-group">
+        <label>&nbsp;</label>
+        <button id="startBtn" onclick="startCountdown()" style="background: var(--primary); color:white; padding: 10px;" data-i18n="btn_start">START</button>
+        <button id="stopBtn" onclick="stopRace()" style="display: none; background: var(--danger); color:white; padding: 10px;" data-i18n="btn_stop">STOPP</button>
       </div>
     </div>
 
-    <div style="background: white; border-radius: 12px; border: 1px solid #e9ecef; overflow: hidden;">
-      <table style="width: 100%; border-collapse: collapse;">
+    <div class="stats-grid">
+      <div class="stat-card" style="border-left: 4px solid var(--warning);">
+        <small data-i18n="fastest_lap">Schnellste</small>
+        <strong id="bestLapDisplay">---</strong>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid #17a2b8; background: #fff3cd;">
+        <small data-i18n="best_triple">Triple</small>
+        <strong id="bestTripleSum">---</strong>
+      </div>
+      <div style="grid-column: span 2; display: flex; gap: 8px;">
+        <button onclick="copyData()" style="flex:1; padding: 10px; background: #6c757d; color: white; font-size: 13px;" data-i18n="btn_copy">Kopieren</button>
+        <button onclick="showImportModal()" style="flex:1; padding: 10px; background: #007bff; color: white; font-size: 13px;" data-i18n="btn_import">Import</button>
+        <button id="clearBtn" onclick="clearSession()" style="padding: 10px; background: #eee; border: 1px solid #ddd;" data-i18n="btn_clear">🗑️</button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table id="lapsTable">
         <thead>
-          <tr style="text-align: left; background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-            <th style="padding: 12px 15px;">#</th>
+          <tr>
+            <th style="width: 40px;">#</th>
             <th data-i18n="col_time">Uhrzeit</th>
-            <th data-i18n="col_lap">Rundenzeit</th>
-            <th data-i18n="col_snaps">Snapshots</th>
+            <th data-i18n="col_lap">Runde</th>
+            <th data-i18n="col_snaps">Bilder</th>
             <th style="text-align: center;" data-i18n="col_action">Aktion</th>
           </tr>
         </thead>
@@ -222,12 +296,12 @@
 
   <div id="importModal" class="modal">
     <div class="modal-content">
-      <h3 style="margin-top:0" data-i18n="import_title">Runden importieren</h3>
-      <p style="font-size: 13px; color: #666;" data-i18n="import_desc">Füge hier die kopierten Daten ein (z.B. aus der Zwischenablage oder Excel). Format: Zeit oder Zeitstempel + Zeit.</p>
-      <textarea id="importArea" style="width:100%; height:150px; border-radius:8px; border:1px solid #ddd; padding:10px; font-family: monospace;" placeholder="Beispiel:&#10;12:05:01 2,45&#10;12:05:04 2,10"></textarea>
+      <h3 style="margin-top:0" data-i18n="import_title">Importieren</h3>
+      <p style="font-size: 12px; color: #666;" data-i18n="import_desc">Datum Uhrzeit Rundenzeit (z.B. 12.04.2024 14:00:05 2.45)</p>
+      <textarea id="importArea" style="width:100%; height:120px; border-radius:8px; border:1px solid #ddd; padding:10px; font-family: monospace; font-size: 12px;" placeholder="TT.MM.JJJJ HH:MM:SS Zeit"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <button onclick="processImport()" style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:8px;" data-i18n="btn_process_import">Importieren</button>
-        <button onclick="hideImportModal()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:8px;" data-i18n="btn_cancel">Abbrechen</button>
+        <button onclick="processImport()" style="flex:1; padding:12px; background:var(--primary); color:white;" data-i18n="btn_process_import">Importieren</button>
+        <button onclick="hideImportModal()" style="flex:1; padding:12px; background:#eee;" data-i18n="btn_cancel">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -235,131 +309,55 @@
   <script>
     const i18n = {
       de: {
-        title: "🏁 FPV Pro Race Timer",
-        cam_active: "● Kamera Aktiv",
-        armed: "SCHARF GESCHALTET",
-        start_trigger: "Start bei erstem Durchflug",
-        camera_select: "KAMERA WÄHLEN",
-        loading_cameras: "Kameras werden geladen...",
-        direction: "RICHTUNG",
-        horizontal: "Horizontal",
-        vertical: "Vertikal",
-        min_lap: "MIN. RUNDENZEIT (S)",
-        btn_start: "START RENNEN",
-        btn_stop: "STOPP / PAUSE",
-        fastest_lap: "Schnellste Runde",
-        best_triple: "Bestes Triple (3)",
-        btn_copy: "📋 Kopieren",
-        btn_import: "📥 Import",
-        btn_clear: "🗑️ Liste Leeren",
-        col_time: "Uhrzeit",
-        col_lap: "Rundenzeit",
-        col_snaps: "Snapshots",
-        col_action: "Aktion",
-        import_title: "Runden importieren",
-        import_desc: "Füge hier die kopierten Daten ein (z.B. aus der Zwischenablage oder Excel). Format: Zeit oder Zeitstempel + Zeit.",
-        btn_process_import: "Importieren",
-        btn_cancel: "Abbrechen",
-        confirm_clear: "Möchten Sie wirklich die gesamte Liste und alle Rekorde löschen?",
-        msg_cleared: "Liste wurde vollständig geleert",
-        msg_race_started: "Rennen läuft",
-        msg_armed: "Scharf geschaltet",
-        msg_stopped: "Rennen gestoppt",
-        msg_new_lap_record: "Neuer Rundenrekord",
-        msg_new_triple: "Neuer Triple Rekord",
-        msg_imported: " Runden importiert",
-        copy_success: "Kopiert!",
-        btn_remove: "Entfernen",
-        btn_activate: "Aktivieren",
-        no_image: "Kein Bild",
-        three: "Drei",
-        two: "Zwei",
-        one: "Eins",
+        title: "🏁 FPV Race Timer", cam_active: "● Kamera Aktiv", armed: "SCHARF",
+        start_trigger: "Start bei Durchflug", camera_select: "Kamera", loading_cameras: "Laden...",
+        direction: "Richtung", horizontal: "Horizontal", vertical: "Vertikal",
+        min_lap: "Min. Runde (s)", btn_start: "START", btn_stop: "STOPP",
+        fastest_lap: "Schnellste", best_triple: "Triple (3)", btn_copy: "Kopieren",
+        btn_import: "Import", btn_clear: "Leeren", col_time: "Zeit",
+        col_lap: "Runde", col_snaps: "Bilder", col_action: "Aktion",
+        import_title: "Importieren", import_desc: "Format: [Datum] [Uhrzeit] Rundenzeit",
+        btn_process_import: "Importieren", btn_cancel: "Abbrechen",
+        confirm_clear: "Alles löschen?", msg_cleared: "Geleert",
+        msg_race_started: "Rennen läuft", msg_armed: "Scharf",
+        msg_stopped: "Stopp", msg_new_lap_record: "Rundenrekord!",
+        msg_new_triple: "Triple Rekord!", msg_imported: " Runden importiert",
+        copy_success: "Kopiert!", btn_remove: "Aus", btn_activate: "An",
+        no_image: "-", three: "Drei", two: "Zwei", one: "Eins",
         export_header: "Datum\tUhrzeit\tRundenzeit\n"
       },
       en: {
-        title: "🏁 FPV Pro Race Timer",
-        cam_active: "● Camera Active",
-        armed: "ARMED",
-        start_trigger: "Starts on first pass",
-        camera_select: "SELECT CAMERA",
-        loading_cameras: "Loading cameras...",
-        direction: "DIRECTION",
-        horizontal: "Horizontal",
-        vertical: "Vertical",
-        min_lap: "MIN LAP TIME (S)",
-        btn_start: "START RACE",
-        btn_stop: "STOP / PAUSE",
-        fastest_lap: "Fastest Lap",
-        best_triple: "Best Triple (3)",
-        btn_copy: "📋 Copy Data",
-        btn_import: "📥 Import",
-        btn_clear: "🗑️ Clear List",
-        col_time: "Time",
-        col_lap: "Lap Time",
-        col_snaps: "Snapshots",
-        col_action: "Action",
-        import_title: "Import Laps",
-        import_desc: "Paste copied data here (e.g. from clipboard or Excel). Format: Timestamp + Time or just Time.",
-        btn_process_import: "Import Now",
-        btn_cancel: "Cancel",
-        confirm_clear: "Do you really want to clear all laps and records?",
-        msg_cleared: "List has been fully cleared",
-        msg_race_started: "Race started",
-        msg_armed: "Armed",
-        msg_stopped: "Race stopped",
-        msg_new_lap_record: "New lap record",
-        msg_new_triple: "New triple record",
-        msg_imported: " laps imported",
-        copy_success: "Copied!",
-        btn_remove: "Remove",
-        btn_activate: "Activate",
-        no_image: "No image",
-        three: "Three",
-        two: "Two",
-        one: "One",
+        title: "🏁 FPV Race Timer", cam_active: "● Camera Active", armed: "ARMED",
+        start_trigger: "Starts on pass", camera_select: "Camera", loading_cameras: "Loading...",
+        direction: "Direction", horizontal: "Horizontal", vertical: "Vertical",
+        min_lap: "Min Lap (s)", btn_start: "START", btn_stop: "STOP",
+        fastest_lap: "Fastest", best_triple: "Triple (3)", btn_copy: "Copy",
+        btn_import: "Import", btn_clear: "Clear", col_time: "Time",
+        col_lap: "Lap", col_snaps: "Snaps", col_action: "Action",
+        import_title: "Import", import_desc: "Format: [Date] [Time] Laptime",
+        btn_process_import: "Import Now", btn_cancel: "Cancel",
+        confirm_clear: "Clear all?", msg_cleared: "Cleared",
+        msg_race_started: "Race started", msg_armed: "Armed",
+        msg_stopped: "Stopped", msg_new_lap_record: "Lap record!",
+        msg_new_triple: "Triple record!", msg_imported: " laps imported",
+        copy_success: "Copied!", btn_remove: "Off", btn_activate: "On",
+        no_image: "-", three: "Three", two: "Two", one: "One",
         export_header: "Date\tTime\tLap Time\n"
       }
     };
 
     let currentLang = 'de';
     let currentStream = null;
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('lang-' + lang).classList.add('active');
-      document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = i18n[lang][el.getAttribute('data-i18n')]; });
-      document.querySelectorAll('[data-label-i18n]').forEach(el => { el.label = i18n[lang][el.getAttribute('data-label-i18n')]; });
-      updateUI();
-    }
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playBeep(freq = 880, duration = 0.1) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-      osc.start(); osc.stop(audioCtx.currentTime + duration);
-    }
-
     let confirmedLaps = [];
     let selectedDirection = 'L->R';
-    let lastCentroidX = null, currentCentroidX = null;
-    let lastCentroidY = null, currentCentroidY = null;
-    let lastGrayscaleData = null; 
-    let lastFrameSnapshot = ""; 
-    let firstTriggerTimestamp = 0; 
-    let lastCrossingTime = 0;
+    let lastCentroidX = null, currentCentroidX = null, lastCentroidY = null, currentCentroidY = null;
+    let lastGrayscaleData = null, lastFrameSnapshot = ""; 
+    let firstTriggerTimestamp = 0, lastCrossingTime = 0;
     let isRaceRunning = false, isCountingDown = false, isWaitingForFirstPass = false;
-    let countdownValue = 3;
-    let sessionBestTriple = Infinity;
-    let sessionBestLap = Infinity;
-    let triggerVisualTimeout = null;
-    let lastMotionTime = 0;
+    let countdownValue = 3, sessionBestTriple = Infinity, sessionBestLap = Infinity;
+    let triggerVisualTimeout = null, lastMotionTime = 0;
 
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const video = document.getElementById('videoElement');
     const canvas = document.getElementById('canvasElement');
     const motionMeter = document.getElementById('motionMeter');
@@ -369,9 +367,23 @@
     const minLapTimeInput = document.getElementById('minLapTimeInput');
     const cameraSelect = document.getElementById('cameraSelect');
 
-    document.addEventListener('DOMContentLoaded', () => {
-      initApp();
-    });
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.id === 'lang-' + lang));
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = i18n[lang][el.getAttribute('data-i18n')]; });
+      document.querySelectorAll('[data-label-i18n]').forEach(el => { el.label = i18n[lang][el.getAttribute('data-label-i18n')]; });
+      updateUI();
+    }
+
+    function playBeep(freq = 880, duration = 0.1) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
 
     async function initApp() {
       loadFromStorage();
@@ -384,150 +396,119 @@
     async function enumerateCameras() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
         cameraSelect.innerHTML = '';
-        videoDevices.forEach((device, index) => {
-          const option = document.createElement('option');
-          option.value = device.deviceId;
-          option.text = device.label || `Kamera ${index + 1}`;
-          cameraSelect.appendChild(option);
+        videoDevices.forEach((d, i) => {
+          const opt = document.createElement('option');
+          opt.value = d.deviceId; opt.text = d.label || `Cam ${i + 1}`;
+          cameraSelect.appendChild(opt);
         });
-      } catch (err) {
-        console.error("Enumerate devices error", err);
-      }
+      } catch (e) { console.error(e); }
     }
 
-    async function setupCamera(deviceId = null) {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      
-      const constraints = {
-        video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }
-      };
-      
+    async function setupCamera(id = null) {
+      if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+      const constraints = { video: id ? { deviceId: { exact: id } } : { facingMode: "environment" } };
       try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
         await video.play();
-        if (!deviceId) await enumerateCameras();
-      } catch (err) {
-        console.error("Camera access error", err);
-      }
+      } catch (e) { console.error(e); }
     }
 
-    async function switchCamera(deviceId) {
-      await setupCamera(deviceId);
-    }
+    async function switchCamera(id) { await setupCamera(id); }
 
     function runDetectionLoop() {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       const loop = () => {
         if (ctx && video.readyState === video.HAVE_ENOUGH_DATA) {
           ctx.drawImage(video, 0, 0, 640, 480);
-          let lineColor = (triggerVisualTimeout) ? 'rgba(40, 167, 69, 0.8)' : 'rgba(255, 0, 0, 0.5)';
-          ctx.lineWidth = (triggerVisualTimeout) ? 6 : 2;
-          
+          let col = triggerVisualTimeout ? 'rgba(40,167,69,0.8)' : 'rgba(255,0,0,0.4)';
+          ctx.lineWidth = triggerVisualTimeout ? 8 : 2;
+          ctx.strokeStyle = col; ctx.beginPath();
           if (selectedDirection.includes('L') || selectedDirection.includes('R')) {
-            ctx.strokeStyle = lineColor; ctx.beginPath(); ctx.moveTo(320, 0); ctx.lineTo(320, 480); ctx.stroke();
+            ctx.moveTo(320, 0); ctx.lineTo(320, 480);
           } else {
-            ctx.strokeStyle = lineColor; ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(640, 240); ctx.stroke();
+            ctx.moveTo(0, 240); ctx.lineTo(640, 240);
           }
+          ctx.stroke();
           
-          const now = Date.now();
-          if (now - lastMotionTime > 200) { lastCentroidX = lastCentroidY = currentCentroidX = currentCentroidY = null; }
           if ((isRaceRunning || isWaitingForFirstPass) && currentCentroidX !== null) {
-            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(currentCentroidX, currentCentroidY, 8, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(currentCentroidX, currentCentroidY, 8, 0, 7); ctx.fill();
           }
-          analyze(ctx.getImageData(0, 0, 640, 480));
+          analyze(ctx.getImageData(0,0,640,480));
         }
         requestAnimationFrame(loop);
       };
       loop();
     }
 
-    function analyze(imageData) {
-      const data = imageData.data;
-      const gray = new Uint8Array(640 * 480);
-      for (let i = 0; i < data.length; i += 4) {
-        gray[i / 4] = (data[i] * 0.3) + (data[i+1] * 0.59) + (data[i+2] * 0.11);
-      }
+    function analyze(imgData) {
+      const d = imgData.data, gray = new Uint8Array(640*480);
+      for(let i=0; i<d.length; i+=4) gray[i/4] = d[i]*0.3 + d[i+1]*0.59 + d[i+2]*0.11;
       if (!lastGrayscaleData) { lastGrayscaleData = gray; return; }
       
-      let sumX = 0, sumY = 0, diffCount = 0;
-      const step = 8;
-      for (let y = 0; y < 480; y += step) {
-        for (let x = 0; x < 640; x += step) {
-          const idx = y * 640 + x;
-          if (Math.abs(gray[idx] - lastGrayscaleData[idx]) > 40) { sumX += x; sumY += y; diffCount++; }
+      let sx=0, sy=0, count=0, step=8;
+      for(let y=0; y<480; y+=step) {
+        for(let x=0; x<640; x+=step) {
+          const idx = y*640+x;
+          if (Math.abs(gray[idx] - lastGrayscaleData[idx]) > 40) { sx+=x; sy+=y; count++; }
         }
       }
 
-      const intensity = Math.min(100, (diffCount / 180) * 100);
+      const intensity = Math.min(100, (count/180)*100);
       motionMeter.style.width = intensity + "%";
-      motionMeter.style.background = intensity > 50 ? '#dc3545' : '#28a745';
+      motionMeter.style.background = intensity > 50 ? 'var(--danger)' : 'var(--primary)';
 
-      if (diffCount > 12) {
+      if (count > 12) {
         lastMotionTime = Date.now();
-        const newX = sumX / diffCount;
-        const newY = sumY / diffCount;
-        if (currentCentroidX === null) { lastCentroidX = newX; lastCentroidY = newY; } 
-        else { lastCentroidX = currentCentroidX; lastCentroidY = currentCentroidY; }
-        currentCentroidX = newX; currentCentroidY = newY;
+        const nx = sx/count, ny = sy/count;
+        lastCentroidX = currentCentroidX === null ? nx : currentCentroidX;
+        lastCentroidY = currentCentroidY === null ? ny : currentCentroidY;
+        currentCentroidX = nx; currentCentroidY = ny;
 
         if (isRaceRunning || isWaitingForFirstPass) {
-          let triggered = false;
-          if (lastCentroidX !== null) {
-            if (selectedDirection === 'L->R') triggered = lastCentroidX < 320 && currentCentroidX >= 320;
-            if (selectedDirection === 'R->L') triggered = lastCentroidX > 320 && currentCentroidX <= 320;
-            if (selectedDirection === 'O->U') triggered = lastCentroidY < 240 && currentCentroidY >= 240;
-            if (selectedDirection === 'U->O') triggered = lastCentroidY > 240 && currentCentroidY <= 240;
-          }
-          if (triggered) handlePassDetected();
+          let hit = false;
+          if (selectedDirection === 'L->R') hit = lastCentroidX < 320 && currentCentroidX >= 320;
+          else if (selectedDirection === 'R->L') hit = lastCentroidX > 320 && currentCentroidX <= 320;
+          else if (selectedDirection === 'O->U') hit = lastCentroidY < 240 && currentCentroidY >= 240;
+          else if (selectedDirection === 'U->O') hit = lastCentroidY > 240 && currentCentroidY <= 240;
+          if (hit) handlePassDetected();
         }
       }
-      if (diffCount > 5) lastFrameSnapshot = canvas.toDataURL('image/jpeg', 0.15);
+      if (count > 5) lastFrameSnapshot = canvas.toDataURL('image/jpeg', 0.15);
       lastGrayscaleData = gray;
     }
 
     function handlePassDetected() {
       const now = Date.now();
-      const minGap = parseFloat(minLapTimeInput.value || 1.5) * 1000;
-      
-      if (lastCrossingTime !== 0 && (now - lastCrossingTime < minGap)) return;
+      const min = parseFloat(minLapTimeInput.value || 1.5) * 1000;
+      if (lastCrossingTime !== 0 && (now - lastCrossingTime < min)) return;
 
       playBeep(1200, 0.15);
       triggerVisualTimeout = setTimeout(() => triggerVisualTimeout = null, 400);
 
       const d = new Date(now);
-      const dateStr = d.toLocaleDateString('de-DE'); // TT.MM.JJJJ
-      const timeStr = d.toLocaleTimeString(currentLang === 'de' ? 'de-DE' : 'en-US');
+      const ds = d.toLocaleDateString('de-DE');
+      const ts = d.toLocaleTimeString('de-DE');
 
       if (isWaitingForFirstPass) {
-        firstTriggerTimestamp = now;
-        isWaitingForFirstPass = false; isRaceRunning = true;
+        firstTriggerTimestamp = now; isWaitingForFirstPass = false; isRaceRunning = true;
         speakText(i18n[currentLang].msg_race_started);
       } else {
-        const lapTime = (now - lastCrossingTime) / 1000;
+        const lap = (now - lastCrossingTime) / 1000;
         confirmedLaps.push({ 
-          time: lapTime, 
-          timestamp: now, 
-          readableDate: dateStr,
-          readableTime: timeStr,
-          active: true, 
-          snapshots: [lastFrameSnapshot, canvas.toDataURL('image/jpeg', 0.15)]
+          time: lap, timestamp: now, readableDate: ds, readableTime: ts,
+          active: true, snapshots: [lastFrameSnapshot, canvas.toDataURL('image/jpeg', 0.15)]
         });
-        speakText(lapTime.toFixed(2).replace('.', currentLang === 'de' ? ',' : '.'));
-        if (lapTime < sessionBestLap) {
-          sessionBestLap = lapTime;
+        speakText(lap.toFixed(2).replace('.', ','));
+        if (lap < sessionBestLap) {
+          sessionBestLap = lap;
           setTimeout(() => { playBeep(1500, 0.3); speakText(i18n[currentLang].msg_new_lap_record); }, 800);
         }
         checkNewTripleRecord();
       }
-      lastCrossingTime = now;
-      saveToStorage(); updateUI();
+      lastCrossingTime = now; saveToStorage(); updateUI();
     }
 
     function checkNewTripleRecord() {
@@ -536,18 +517,15 @@
         const sum = active.slice(-3).reduce((a, b) => a + b.time, 0);
         if (sum < sessionBestTriple) {
           sessionBestTriple = sum;
-          setTimeout(() => speakText(i18n[currentLang].msg_new_triple + " " + sum.toFixed(2).replace('.', currentLang === 'de' ? ',' : '.')), 2000);
+          setTimeout(() => speakText(i18n[currentLang].msg_new_triple + " " + sum.toFixed(2).replace('.', ',')), 2000);
         }
       }
     }
 
-    function updateDirection(v) { 
-      selectedDirection = v; 
-      lastCentroidX = currentCentroidX = lastCentroidY = currentCentroidY = null;
-    }
+    function updateDirection(v) { selectedDirection = v; lastCentroidX = currentCentroidX = null; }
 
-    function toggleLap(idx) {
-      confirmedLaps[idx].active = !confirmedLaps[idx].active;
+    function toggleLap(i) {
+      confirmedLaps[i].active = !confirmedLaps[i].active;
       recalculateLaps(); updateUI(); saveToStorage();
     }
 
@@ -555,9 +533,9 @@
       let prev = firstTriggerTimestamp;
       confirmedLaps.forEach(l => {
         if (l.active) { 
-            if (l.isImported) { prev = l.timestamp; } 
-            else { l.time = (l.timestamp - prev) / 1000; prev = l.timestamp; }
-        } else { l.time = 0; }
+          if (l.isImported) prev = l.timestamp; 
+          else { l.time = (l.timestamp - prev) / 1000; prev = l.timestamp; }
+        } else l.time = 0;
       });
       const active = confirmedLaps.filter(l => l.active);
       sessionBestLap = active.length ? Math.min(...active.map(l => l.time)) : Infinity;
@@ -567,17 +545,15 @@
 
     function startCountdown() {
       if (isCountingDown) return;
-      isCountingDown = true; countdownValue = 3; 
-      speakText(i18n[currentLang].three);
+      isCountingDown = true; countdownValue = 3; speakText(i18n[currentLang].three);
       updateUI();
       const itv = setInterval(() => {
         countdownValue--;
         if (countdownValue === 2) speakText(i18n[currentLang].two);
         if (countdownValue === 1) speakText(i18n[currentLang].one);
-        if (countdownValue > 0) { updateUI(); }
+        if (countdownValue > 0) updateUI();
         else { 
-          clearInterval(itv); 
-          speakText(i18n[currentLang].msg_armed); 
+          clearInterval(itv); speakText(i18n[currentLang].msg_armed); 
           isCountingDown = false; isWaitingForFirstPass = true; updateUI(); 
         }
       }, 1000);
@@ -585,8 +561,7 @@
 
     function stopRace() {
       isRaceRunning = isWaitingForFirstPass = false;
-      speakText(i18n[currentLang].msg_stopped);
-      updateUI();
+      speakText(i18n[currentLang].msg_stopped); updateUI();
     }
 
     function speakText(t) {
@@ -609,15 +584,12 @@
     function copyData() {
       let t = i18n[currentLang].export_header;
       confirmedLaps.filter(l => l.active).forEach(l => {
-        const date = l.readableDate || new Date(l.timestamp).toLocaleDateString('de-DE');
-        t += `${date}\t${l.readableTime}\t${l.time.toFixed(2).replace('.', ',')}s\n`;
+        t += `${l.readableDate}\t${l.readableTime}\t${l.time.toFixed(2).replace('.', ',')}s\n`;
       });
       navigator.clipboard.writeText(t).then(() => {
-        // Simple success visual feedback
-        const btn = document.querySelector('[data-i18n="btn_copy"]');
-        const originalText = btn.innerText;
-        btn.innerText = "✓ OK";
-        setTimeout(() => btn.innerText = originalText, 2000);
+        const b = document.querySelector('[data-i18n="btn_copy"]');
+        const old = b.innerText; b.innerText = "✓";
+        setTimeout(() => b.innerText = old, 1500);
       });
     }
 
@@ -625,36 +597,45 @@
     function hideImportModal() { document.getElementById('importModal').style.display = 'none'; }
     
     function processImport() {
-      const text = document.getElementById('importArea').value;
-      const lines = text.split('\n');
-      let added = 0;
+      const lines = document.getElementById('importArea').value.split('\n');
+      let count = 0;
       lines.forEach(line => {
-        const clean = line.replace(',', '.').trim();
-        const parts = clean.split(/\s+/);
-        const timeVal = parseFloat(parts[parts.length - 1]);
-        if (!isNaN(timeVal)) {
+        const parts = line.trim().replace(',', '.').split(/\s+/);
+        if (parts.length < 1) return;
+        
+        // Versuche Format: [Datum] [Uhrzeit] Rundenzeit
+        let datePart = new Date().toLocaleDateString('de-DE');
+        let timePart = "Import";
+        let lapValue = 0;
+
+        if (parts.length >= 3) {
+           datePart = parts[0];
+           timePart = parts[1];
+           lapValue = parseFloat(parts[2]);
+        } else if (parts.length === 2) {
+           timePart = parts[0];
+           lapValue = parseFloat(parts[1]);
+        } else {
+           lapValue = parseFloat(parts[0]);
+        }
+
+        if (!isNaN(lapValue)) {
           confirmedLaps.push({ 
-            time: timeVal, 
-            timestamp: Date.now() + added, 
-            readableDate: parts.length > 2 ? parts[0] : new Date().toLocaleDateString('de-DE'),
-            readableTime: parts.length > 1 ? parts[parts.length - 2] : "Import", 
-            active: true, 
-            isImported: true, 
-            snapshots: ["", ""] 
+            time: lapValue, timestamp: Date.now() + count, 
+            readableDate: datePart, readableTime: timePart, 
+            active: true, isImported: true, snapshots: ["", ""] 
           });
-          added++;
+          count++;
         }
       });
-      if (added > 0) { recalculateLaps(); saveToStorage(); updateUI(); hideImportModal(); speakText(added + i18n[currentLang].msg_imported); }
+      if (count > 0) { recalculateLaps(); saveToStorage(); updateUI(); hideImportModal(); speakText(count + i18n[currentLang].msg_imported); }
     }
 
     function clearSession() {
       if (confirm(i18n[currentLang].confirm_clear)) {
-        isRaceRunning = isWaitingForFirstPass = isCountingDown = false;
         confirmedLaps = []; sessionBestLap = sessionBestTriple = Infinity;
         firstTriggerTimestamp = lastCrossingTime = 0;
         localStorage.removeItem('fpv_timer_data');
-        bestTripleSumEl.innerText = '---'; bestLapDisplay.innerText = '---'; lapsTableBody.innerHTML = '';
         updateUI(); speakText(i18n[currentLang].msg_cleared);
       }
     }
@@ -681,31 +662,31 @@
       bestLapDisplay.innerText = sessionBestLap === Infinity ? '---' : sessionBestLap.toFixed(2) + 's';
 
       lapsTableBody.innerHTML = '';
-      if (confirmedLaps.length === 0) return;
-
-      let tripleIndices = [];
+      let tripleIdx = [];
       if (triple) {
         const active = confirmedLaps.map((l, idx) => ({...l, idx})).filter(l => l.active);
-        const startIdx = active.findIndex(l => l.idx === triple.startIndex);
-        if (startIdx !== -1) tripleIndices = active.slice(startIdx, startIdx + 3).map(l => l.idx);
+        const s = active.findIndex(l => l.idx === triple.startIndex);
+        if (s !== -1) tripleIdx = active.slice(s, s + 3).map(l => l.idx);
       }
 
       confirmedLaps.forEach((l, i) => {
-        const isTriple = tripleIndices.includes(i);
-        const isBest = l.active && l.time === sessionBestLap;
+        const isT = tripleIdx.includes(i), isB = l.active && l.time === sessionBestLap;
         const tr = document.createElement('tr');
-        tr.style.background = isTriple ? '#fff3cd' : (l.active ? 'transparent' : '#f8f9fa');
-        tr.style.opacity = l.active ? '1' : '0.5';
+        if (isT) tr.style.background = '#fff3cd';
+        if (!l.active) tr.style.opacity = '0.4';
+        
         tr.innerHTML = `
-          <td style="padding:15px;">${isTriple ? '★' : ''}${isBest ? '🏆' : ''}${i+1}</td>
-          <td>${l.readableTime}</td>
-          <td style="font-size:18px; font-weight:${isBest?'bold':'normal'}">${l.active ? l.time.toFixed(2)+'s' : '---'}</td>
+          <td>${isT?'★':''}${isB?'🏆':''}${i+1}</td>
+          <td style="font-size:12px">${l.readableDate}<br><strong>${l.readableTime}</strong></td>
+          <td style="font-size:16px; font-weight:${isB?'bold':'normal'}">${l.active ? l.time.toFixed(2)+'s' : '-'}</td>
           <td>
-            ${l.snapshots[0] ? `<img src="${l.snapshots[0]}" width="60" height="45">` : `<span style="color:#ccc; font-size:10px">${i18n[currentLang].no_image}</span>`} 
-            ${l.snapshots[1] ? `<img src="${l.snapshots[1]}" width="60" height="45" style="border:1px solid green">` : ''}
+            <div style="display:flex; gap:2px">
+              ${l.snapshots[0] ? `<img class="snapshot-img" src="${l.snapshots[0]}">` : '-'} 
+              ${l.snapshots[1] ? `<img class="snapshot-img" src="${l.snapshots[1]}" style="border:1px solid green">` : ''}
+            </div>
           </td>
           <td style="text-align:center">
-            <button onclick="toggleLap(${i})" style="padding:5px 10px; border-radius:5px; border:none; background:#6c757d; color:white;">
+            <button onclick="toggleLap(${i})" style="padding:6px; background:#6c757d; color:white; font-size:10px;">
               ${l.active ? i18n[currentLang].btn_remove : i18n[currentLang].btn_activate}
             </button>
           </td>
@@ -713,6 +694,8 @@
         lapsTableBody.appendChild(tr);
       });
     }
+
+    document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
