@@ -101,25 +101,15 @@
     }
 
     .video-wrapper {
-	  position: relative;
-	  background: #000;
-	  border-radius: 12px;
-	  overflow: hidden;
-	  /* Entfernt das feste Seitenverhältnis, damit es sich dem Container anpasst */
-	  width: 100%;
-	  display: flex;
-	  justify-content: center;
-	  align-items: center;
-	}
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+    }
 
-    canvas { 
-	  max-width: 100%; 
-	  max-height: 80vh; /* Verhindert, dass das Bild auf kleinen Bildschirmen zu hoch wird */
-	  height: auto; 
-	  display: block; 
-	  /* Behält das Seitenverhältnis der Kamera bei, ohne zu beschneiden */
-	  object-fit: contain; 
-	}
+    canvas { width: 100%; height: 100%; display: block; }
 
     .gate-overlay {
       position: absolute;
@@ -625,37 +615,16 @@
   }
 
   async function startStream(id) {
-	  if (window.stream) window.stream.getTracks().forEach(t => t.stop());
-	  
-	  const constraints = { 
-		video: { 
-		  deviceId: id ? { exact: id } : undefined, 
-		  // Nutzt "ideal", um die höchste verfügbare Auflösung zu erzwingen
-		  width: { ideal: 1920 }, 
-		  height: { ideal: 1080 },
-		  frameRate: { ideal: 60 } 
-		} 
-	  };
-	  
-	  try {
-		window.stream = await navigator.mediaDevices.getUserMedia(constraints);
-		video.srcObject = window.stream; 
-		video.setAttribute('playsinline', true); 
-		
-		// Warte, bis die Metadaten geladen sind, um den Canvas korrekt zu dimensionieren
-		video.onloadedmetadata = () => {
-		  canvas.width = video.videoWidth;
-		  canvas.height = video.videoHeight;
-		  video.play();
-		};
-	  } catch(err) {
-		console.error("Fehler beim Zugriff auf Kamera: ", err);
-		// Fallback auf Standard-Kamera
-		window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
-		video.srcObject = window.stream; 
-		video.play();
-	  }
-	}
+    if (window.stream) window.stream.getTracks().forEach(t => t.stop());
+    const constraints = { video: { deviceId: id ? { exact: id } : undefined, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } } };
+    try {
+        window.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = window.stream; video.setAttribute('playsinline', true); video.play();
+    } catch(err) {
+        window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = window.stream; video.play();
+    }
+  }
 
   function switchCam(id) { startStream(id); }
   function updateSens(v) { state.sensitivity = parseInt(v); document.getElementById('sensDisp').innerText = v; }
