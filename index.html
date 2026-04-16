@@ -101,15 +101,25 @@
     }
 
     .video-wrapper {
-      position: relative;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      aspect-ratio: 4 / 3;
-      width: 100%;
-    }
+	  position: relative;
+	  background: #000;
+	  border-radius: 12px;
+	  overflow: hidden;
+	  /* Entfernt das feste Seitenverhältnis, damit es sich dem Container anpasst */
+	  width: 100%;
+	  display: flex;
+	  justify-content: center;
+	  align-items: center;
+	}
 
-    canvas { width: 100%; height: 100%; display: block; }
+    canvas { 
+	  max-width: 100%; 
+	  max-height: 80vh; /* Verhindert, dass das Bild auf kleinen Bildschirmen zu hoch wird */
+	  height: auto; 
+	  display: block; 
+	  /* Behält das Seitenverhältnis der Kamera bei, ohne zu beschneiden */
+	  object-fit: contain; 
+	}
 
     .gate-overlay {
       position: absolute;
@@ -511,59 +521,6 @@
     }
   };
 
-  let state = {
-    running: false,
-    armed: false,
-    lastPassTime: 0,
-    bestLap: Infinity,
-    bestTriple: Infinity,
-    tripleIndices: [], 
-    laps: [],
-    sensitivity: 40,
-    lastFrame: null,
-    currentX: null,
-    currentY: null,
-    prevX: null,
-    prevY: null,
-    gateStatus: 0, 
-    readyTimestamp: 0,
-    lockoutUntil: 0,
-    preImage: null,
-    audioCtx: null,
-    wakeLock: null // State für Standby-Verhinderung
-  };
-
-  // Screen Wake Lock API Logic
-  async function requestWakeLock() {
-    try {
-      if ('wakeLock' in navigator) {
-        state.wakeLock = await navigator.wakeLock.request('screen');
-      }
-    } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
-    }
-  }
-
-  function releaseWakeLock() {
-    if (state.wakeLock !== null) {
-      state.wakeLock.release().then(() => {
-        state.wakeLock = null;
-      });
-    }
-  }
-
-  // Automatisches erneutes Anfordern, wenn die Seite wieder sichtbar wird
-  document.addEventListener('visibilitychange', async () => {
-    if (state.wakeLock !== null && document.visibilityState === 'visible') {
-      await requestWakeLock();
-    }
-  });
-
-  const video = document.createElement('video');
-  const canvas = document.getElementById('raceCanvas');
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const lapTableBody = document.getElementById('lapTableBody');
-
   function toggleLanguage() {
     const isChecked = document.getElementById('langToggle').checked;
     currentLang = isChecked ? 'en' : 'de';
@@ -588,6 +545,32 @@
 
     recalculateAndUI();
   }
+
+  let state = {
+    running: false,
+    armed: false,
+    lastPassTime: 0,
+    bestLap: Infinity,
+    bestTriple: Infinity,
+    tripleIndices: [], 
+    laps: [],
+    sensitivity: 40,
+    lastFrame: null,
+    currentX: null,
+    currentY: null,
+    prevX: null,
+    prevY: null,
+    gateStatus: 0, 
+    readyTimestamp: 0,
+    lockoutUntil: 0,
+    preImage: null,
+    audioCtx: null
+  };
+
+  const video = document.createElement('video');
+  const canvas = document.getElementById('raceCanvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const lapTableBody = document.getElementById('lapTableBody');
 
   function initAudio() {
     if (!state.audioCtx) {
@@ -642,16 +625,37 @@
   }
 
   async function startStream(id) {
-    if (window.stream) window.stream.getTracks().forEach(t => t.stop());
-    const constraints = { video: { deviceId: id ? { exact: id } : undefined, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } } };
-    try {
-        window.stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = window.stream; video.setAttribute('playsinline', true); video.play();
-    } catch(err) {
-        window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = window.stream; video.play();
-    }
-  }
+	  if (window.stream) window.stream.getTracks().forEach(t => t.stop());
+	  
+	  const constraints = { 
+		video: { 
+		  deviceId: id ? { exact: id } : undefined, 
+		  // Nutzt "ideal", um die höchste verfügbare Auflösung zu erzwingen
+		  width: { ideal: 1920 }, 
+		  height: { ideal: 1080 },
+		  frameRate: { ideal: 60 } 
+		} 
+	  };
+	  
+	  try {
+		window.stream = await navigator.mediaDevices.getUserMedia(constraints);
+		video.srcObject = window.stream; 
+		video.setAttribute('playsinline', true); 
+		
+		// Warte, bis die Metadaten geladen sind, um den Canvas korrekt zu dimensionieren
+		video.onloadedmetadata = () => {
+		  canvas.width = video.videoWidth;
+		  canvas.height = video.videoHeight;
+		  video.play();
+		};
+	  } catch(err) {
+		console.error("Fehler beim Zugriff auf Kamera: ", err);
+		// Fallback auf Standard-Kamera
+		window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
+		video.srcObject = window.stream; 
+		video.play();
+	  }
+	}
 
   function switchCam(id) { startStream(id); }
   function updateSens(v) { state.sensitivity = parseInt(v); document.getElementById('sensDisp').innerText = v; }
@@ -677,10 +681,8 @@
       if (count <= 0) {
         clearInterval(itv); playRaceCountdown(true); cd.innerText = "GO!"; cd.style.color = '#10b981';
         setTimeout(() => { cd.style.display = 'none'; }, 500);
-        state.armed = true; 
-        resetGateStatus();
+        state.armed = true; resetGateStatus();
         updateLanguageUI();
-        requestWakeLock(); // Screen Standby verhindern sobald gestartet
         document.getElementById('statusLight').className = "status-light status-active";
         document.getElementById('btnToggle').className = "btn-stop";
       } else { cd.innerText = count; playRaceCountdown(false); }
@@ -688,10 +690,8 @@
   }
 
   function stopRace() {
-    state.running = false; state.armed = false; 
-    resetGateStatus();
+    state.running = false; state.armed = false; resetGateStatus();
     updateLanguageUI();
-    releaseWakeLock(); // Standby wieder erlauben
     document.getElementById('statusLight').className = "status-light status-idle";
     document.getElementById('btnToggle').className = "btn-main";
     document.getElementById('big-timer').innerText = "0.000";
@@ -847,7 +847,7 @@
         }
       }
     }
-    updateUI(activeCount = activeLaps.length);
+    updateUI(activeLaps.length);
   }
 
   function updateUI(activeCount) {
