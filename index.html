@@ -3,19 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FPV Pro Race Timer - V5.2 (Modal Import)</title>
+  <title>FPV Pro Race Timer - Multilingual</title>
   
-  <!-- 
-    ÄNDERUNGSHISTORIE / CHANGELOG:
-    V5.2:
-    - UX: Import-Textarea in ein Modal-Fenster ausgelagert.
-    - UI: Neuer "IMPORT" Button in der Action-Bar.
-    - UI: Design-Anpassungen für das Import-Modal (Overlay).
-
-    V5.1:
-    - Feature: Import-Funktion wiederhergestellt mit "Smart Paste".
-  -->
-
   <style>
     :root {
       --primary: #10b981;
@@ -46,6 +35,69 @@
       border-radius: 20px;
       padding: 15px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Modern Language Toggle Switch */
+    .header-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 15px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lang-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .4s;
+      border-radius: 24px;
+      border: 1px solid #475569;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    input:focus + .slider {
+      box-shadow: 0 0 1px var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
     }
 
     .video-wrapper {
@@ -150,7 +202,6 @@
       box-sizing: border-box;
     }
 
-    /* Modal Styles */
     #importModal {
       position: fixed;
       top: 0; left: 0;
@@ -273,12 +324,22 @@
 <body>
 
 <div class="container">
+  <!-- Modern Header with Toggle Switch -->
+  <div class="header-bar">
+    <span class="lang-label">DE</span>
+    <label class="switch">
+      <input type="checkbox" id="langToggle" onchange="toggleLanguage()">
+      <span class="slider"></span>
+    </label>
+    <span class="lang-label">EN</span>
+  </div>
+
   <div class="video-wrapper">
     <canvas id="raceCanvas" width="640" height="480"></canvas>
     <div class="gate-overlay line-v" id="gateLine"></div>
     <div id="hud">
       <span id="statusLight" class="status-light status-idle"></span>
-      SENS: <span id="sensDisp">40</span> | <span id="statusTxt">BEREIT</span>
+      SENS: <span id="sensDisp">40</span> | <span id="statusTxt" data-i18n="status_ready">BEREIT</span>
     </div>
     <div id="big-timer">0.000</div>
     <div id="countdown">3</div>
@@ -286,51 +347,51 @@
 
   <div class="dashboard">
     <div class="stat-box">
-      <span class="stat-label">Beste Runde</span>
+      <span class="stat-label" data-i18n="best_lap">Beste Runde</span>
       <span class="stat-value" id="val-best">--.---</span>
     </div>
     <div class="stat-box">
-      <span class="stat-label">Letzte Runde</span>
+      <span class="stat-label" data-i18n="last_lap">Letzte Runde</span>
       <span class="stat-value" id="val-last">--.---</span>
     </div>
     <div class="stat-box">
-      <span class="stat-label">Aktive Runden</span>
+      <span class="stat-label" data-i18n="active_laps">Aktive Runden</span>
       <span class="stat-value" id="val-count">0</span>
     </div>
     <div class="stat-box">
-      <span class="stat-label">Beste 3 Runden</span>
+      <span class="stat-label" data-i18n="best_triple">Beste 3 Runden</span>
       <span class="stat-value" id="val-triple">--.---</span>
     </div>
   </div>
 
   <div class="action-bar">
-    <button id="btnToggle" class="btn-main" onclick="handleMainAction()">START</button>
-    <button class="btn-import" onclick="openImportModal()">IMPORT</button>
-    <button class="btn-accent" onclick="copyToClipboard()">KOPIEREN</button>
+    <button id="btnToggle" class="btn-main" onclick="handleMainAction()" data-i18n="btn_start">START</button>
+    <button class="btn-import" onclick="openImportModal()" data-i18n="btn_import">IMPORT</button>
+    <button class="btn-accent" onclick="copyToClipboard()" id="btnCopy" data-i18n="btn_copy">KOPIEREN</button>
     <button class="btn-secondary" onclick="exportCSV()">EXPORT (CSV)</button>
     <button class="btn-secondary" style="background:var(--danger); color:white" onclick="clearSession()">RESET</button>
   </div>
 
   <div class="settings-panel">
     <div class="input-field">
-      <label>KAMERA</label>
+      <label data-i18n="label_camera">KAMERA</label>
       <select id="camSelect" onchange="switchCam(this.value)"></select>
     </div>
     <div class="input-field">
-      <label>SENSITIVITÄT</label>
+      <label data-i18n="label_sensitivity">SENSITIVITÄT</label>
       <input type="range" min="5" max="250" value="40" id="sensRange" oninput="updateSens(this.value)">
     </div>
     <div class="input-field">
-      <label>FLUG-RICHTUNG</label>
+      <label data-i18n="label_direction">FLUG-RICHTUNG</label>
       <select id="dirSelect" onchange="updateGateUI(this.value)">
-        <option value="LR">Links ➔ Rechts</option>
-        <option value="RL">Rechts ➔ Links</option>
-        <option value="TB">Oben ➔ Unten</option>
-        <option value="BT">Unten ➔ Oben</option>
+        <option value="LR" data-i18n="dir_lr">Links ➔ Rechts</option>
+        <option value="RL" data-i18n="dir_rl">Rechts ➔ Links</option>
+        <option value="TB" data-i18n="dir_tb">Oben ➔ Unten</option>
+        <option value="BT" data-i18n="dir_bt">Unten ➔ Oben</option>
       </select>
     </div>
     <div class="input-field">
-      <label>MIN. RUNDE (S)</label>
+      <label data-i18n="label_min_lap">MIN. RUNDE (S)</label>
       <input type="number" id="minLap" value="1.5" step="0.5">
     </div>
   </div>
@@ -340,10 +401,10 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>DATUM / ZEIT</th>
-          <th>DAUER</th>
-          <th>VORSCHAU (TRIGGER-CHECK)</th>
-          <th>STATUS</th>
+          <th data-i18n="table_date">DATUM / ZEIT</th>
+          <th data-i18n="table_duration">DAUER</th>
+          <th data-i18n="table_preview">VORSCHAU</th>
+          <th data-i18n="table_status">STATUS</th>
         </tr>
       </thead>
       <tbody id="lapTableBody"></tbody>
@@ -351,23 +412,130 @@
   </div>
 </div>
 
-<!-- Modal für Import -->
 <div id="importModal">
   <div class="modal-content">
     <div class="modal-header">
-      <span class="modal-title">Daten importieren</span>
+      <span class="modal-title" data-i18n="modal_title">Daten importieren</span>
       <button onclick="closeImportModal()" style="min-width:auto; padding:5px; background:transparent; color:var(--text-muted); font-size:20px;">×</button>
     </div>
-    <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).</p>
-    <textarea id="importArea" class="modal-textarea" placeholder="Beispiel: 1   16.04.2024   12:00:00   2.500   Aktiv"></textarea>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;" data-i18n="modal_desc">Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).</p>
+    <textarea id="importArea" class="modal-textarea" placeholder=""></textarea>
     <div style="display:flex; gap:10px;">
-      <button class="btn-main" onclick="importFromText()">IMPORTIEREN</button>
-      <button class="btn-secondary" onclick="closeImportModal()">ABBRECHEN</button>
+      <button class="btn-main" onclick="importFromText()" data-i18n="modal_btn_import">IMPORTIEREN</button>
+      <button class="btn-secondary" onclick="closeImportModal()" data-i18n="modal_btn_cancel">ABBRECHEN</button>
     </div>
   </div>
 </div>
 
 <script>
+  // Internationalization
+  let currentLang = 'de';
+  const translations = {
+    de: {
+        status_ready: "BEREIT",
+        status_armed: "SCHARF",
+        status_running: "RENNEN LÄUFT",
+        best_lap: "Beste Runde",
+        last_lap: "Letzte Runde",
+        active_laps: "Aktive Runden",
+        best_triple: "Beste 3 Runden",
+        btn_start: "START",
+        btn_stop: "STOPP",
+        btn_import: "IMPORT",
+        btn_copy: "KOPIEREN",
+        btn_copied: "KOPIERT!",
+        label_camera: "KAMERA",
+        label_sensitivity: "SENSITIVITÄT",
+        label_direction: "FLUG-RICHTUNG",
+        label_min_lap: "MIN. RUNDE (S)",
+        dir_lr: "Links ➔ Rechts",
+        dir_rl: "Rechts ➔ Links",
+        dir_tb: "Oben ➔ Unten",
+        dir_bt: "Unten ➔ Oben",
+        table_date: "DATUM / ZEIT",
+        table_duration: "DAUER",
+        table_preview: "VORSCHAU",
+        table_status: "STATUS",
+        modal_title: "Daten importieren",
+        modal_desc: "Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).",
+        modal_btn_import: "IMPORTIEREN",
+        modal_btn_cancel: "ABBRECHEN",
+        table_btn_valid: "WERTEN",
+        table_btn_combine: "ZUSAMMEN",
+        table_status_active: "Aktiv",
+        table_status_passive: "Passiv",
+        confirm_reset: "Alle Daten löschen?",
+        voice_start: "Start",
+        voice_record: "Bestzeit! ",
+        voice_triple: "Triple Rekord! ",
+        voice_point: " komma "
+    },
+    en: {
+        status_ready: "READY",
+        status_armed: "ARMED",
+        status_running: "RACE RUNNING",
+        best_lap: "Best Lap",
+        last_lap: "Last Lap",
+        active_laps: "Active Laps",
+        best_triple: "Best 3 Laps",
+        btn_start: "START",
+        btn_stop: "STOP",
+        btn_import: "IMPORT",
+        btn_copy: "COPY",
+        btn_copied: "COPIED!",
+        label_camera: "CAMERA",
+        label_sensitivity: "SENSITIVITY",
+        label_direction: "FLIGHT DIRECTION",
+        label_min_lap: "MIN. LAP (S)",
+        dir_lr: "Left ➔ Right",
+        dir_rl: "Right ➔ Left",
+        dir_tb: "Top ➔ Bottom",
+        dir_bt: "Bottom ➔ Top",
+        table_date: "DATE / TIME",
+        table_duration: "DURATION",
+        table_preview: "PREVIEW",
+        table_status: "STATUS",
+        modal_title: "Import Data",
+        modal_desc: "Paste data from a table or CSV here (Round, Date, Time, Duration, Status).",
+        modal_btn_import: "IMPORT",
+        modal_btn_cancel: "CANCEL",
+        table_btn_valid: "VALID",
+        table_btn_combine: "COMBINE",
+        table_status_active: "Active",
+        table_status_passive: "Passive",
+        confirm_reset: "Clear all session data?",
+        voice_start: "Start",
+        voice_record: "New record! ",
+        voice_triple: "Triple record! ",
+        voice_point: " point "
+    }
+  };
+
+  function toggleLanguage() {
+    const isChecked = document.getElementById('langToggle').checked;
+    currentLang = isChecked ? 'en' : 'de';
+    updateLanguageUI();
+  }
+
+  function updateLanguageUI() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+        }
+    });
+    
+    const statusTxt = document.getElementById('statusTxt');
+    if (!state.armed && !state.running) statusTxt.innerText = translations[currentLang].status_ready;
+    else if (state.armed) statusTxt.innerText = translations[currentLang].status_armed;
+    else if (state.running) statusTxt.innerText = translations[currentLang].status_running;
+
+    const btnToggle = document.getElementById('btnToggle');
+    btnToggle.innerText = (state.armed || state.running) ? translations[currentLang].btn_stop : translations[currentLang].btn_start;
+
+    recalculateAndUI();
+  }
+
   let state = {
     running: false,
     armed: false,
@@ -405,12 +573,10 @@
     const osc = state.audioCtx.createOscillator();
     const gain = state.audioCtx.createGain();
     const startTime = state.audioCtx.currentTime + delay;
-    
     osc.type = type;
     osc.frequency.setValueAtTime(freq, startTime);
     gain.gain.setValueAtTime(volume, startTime);
     gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-    
     osc.connect(gain);
     gain.connect(state.audioCtx.destination);
     osc.start(startTime);
@@ -420,7 +586,7 @@
   function playPassBeep() { playSound(880, 0.1, 'square', 0.15); }
   function playRecordFanfare() {
     const vol = 0.15;
-    playSound(523.25, 0.1, 'sine', vol, 0);     
+    playSound(523.25, 0.1, 'sine', vol, 0);      
     playSound(659.25, 0.1, 'sine', vol, 0.08);  
     playSound(783.99, 0.15, 'sine', vol, 0.16); 
     playSound(1046.5, 0.25, 'sine', vol, 0.25); 
@@ -485,18 +651,18 @@
         clearInterval(itv); playRaceCountdown(true); cd.innerText = "GO!"; cd.style.color = '#10b981';
         setTimeout(() => { cd.style.display = 'none'; }, 500);
         state.armed = true; resetGateStatus();
-        document.getElementById('statusTxt').innerText = "SCHARF";
+        updateLanguageUI();
         document.getElementById('statusLight').className = "status-light status-active";
-        document.getElementById('btnToggle').innerText = "STOPP"; document.getElementById('btnToggle').className = "btn-stop";
+        document.getElementById('btnToggle').className = "btn-stop";
       } else { cd.innerText = count; playRaceCountdown(false); }
     }, 1000);
   }
 
   function stopRace() {
     state.running = false; state.armed = false; resetGateStatus();
-    document.getElementById('statusTxt').innerText = "BEREIT";
+    updateLanguageUI();
     document.getElementById('statusLight').className = "status-light status-idle";
-    document.getElementById('btnToggle').innerText = "START"; document.getElementById('btnToggle').className = "btn-main";
+    document.getElementById('btnToggle').className = "btn-main";
     document.getElementById('big-timer').innerText = "0.000";
   }
 
@@ -594,26 +760,39 @@
     const preImage = state.preImage || postImage;
     if (state.armed) {
       playPassBeep(); state.armed = false; state.running = true; state.lastPassTime = now;
-      document.getElementById('statusTxt').innerText = "RENNEN LÄUFT"; announce("Start"); return;
+      updateLanguageUI();
+      announce(translations[currentLang].voice_start); return;
     }
     const lapTime = (now - state.lastPassTime) / 1000;
     state.lastPassTime = now;
     const oldBestLap = state.bestLap; const oldBestTriple = state.bestTriple; const fullDate = new Date();
-    state.laps.push({ id: Date.now(), rawTime: lapTime, active: true, date: fullDate.toLocaleDateString('de-DE'), timestamp: fullDate.toLocaleTimeString('de-DE'), preImg: preImage, postImg: postImage });
+    const lapData = { 
+        id: Date.now(), rawTime: lapTime, active: true, 
+        date: fullDate.toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-US'), 
+        timestamp: fullDate.toLocaleTimeString(currentLang === 'de' ? 'de-DE' : 'en-US'), 
+        preImg: preImage, postImg: postImage 
+    };
+    state.laps.push(lapData);
     recalculateAndUI();
     const isNewLapRecord = state.bestLap < oldBestLap && state.bestLap !== Infinity;
     const isNewTripleRecord = state.bestTriple < oldBestTriple && state.bestTriple !== Infinity;
-    const activeLaps = state.laps.filter(l => l.active); const displayTime = activeLaps[activeLaps.length - 1]?.displayTime || lapTime;
+    const activeLaps = state.laps.filter(l => l.active);
+    const displayTime = activeLaps[activeLaps.length - 1]?.displayTime || lapTime;
     if (isNewLapRecord || isNewTripleRecord) playRecordFanfare(); else playPassBeep();
     setTimeout(() => {
-        let voiceMsg = ""; if (isNewLapRecord) voiceMsg += "Bestzeit! "; if (isNewTripleRecord) voiceMsg += "Triple Rekord! ";
-        voiceMsg += displayTime.toFixed(2).replace('.', ' komma '); announce(voiceMsg);
+        let voiceMsg = ""; 
+        if (isNewLapRecord) voiceMsg += translations[currentLang].voice_record; 
+        if (isNewTripleRecord) voiceMsg += translations[currentLang].voice_triple;
+        voiceMsg += displayTime.toFixed(2).replace('.', translations[currentLang].voice_point); 
+        announce(voiceMsg);
     }, 450); 
   }
 
   function announce(txt) {
     if (!txt) return; window.speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(txt.toString()); msg.lang = 'de-DE'; msg.rate = 2.1; msg.volume = 1.0; window.speechSynthesis.speak(msg);
+    const msg = new SpeechSynthesisUtterance(txt.toString()); 
+    msg.lang = currentLang === 'de' ? 'de-DE' : 'en-US'; 
+    msg.rate = 2.1; msg.volume = 1.0; window.speechSynthesis.speak(msg);
   }
 
   function toggleLap(lapId) {
@@ -637,7 +816,7 @@
         }
       }
     }
-    updateUI(activeCount = activeLaps.length);
+    updateUI(activeLaps.length);
   }
 
   function updateUI(activeCount) {
@@ -649,7 +828,11 @@
     } else { document.getElementById('val-last').innerText = '--.---'; document.getElementById('val-best').innerText = '--.---'; }
     document.getElementById('val-triple').innerText = state.bestTriple === Infinity ? '--.---' : state.bestTriple.toFixed(3);
     lapTableBody.innerHTML = "";
-    [...state.laps].reverse().forEach((l, idx) => {
+    
+    const btnValidTxt = translations[currentLang].table_btn_valid;
+    const btnCombineTxt = translations[currentLang].table_btn_combine;
+
+    [...state.laps].reverse().forEach((l) => {
         const row = document.createElement('tr');
         const isTriple = state.tripleIndices.includes(l.id);
         const isBest = l.active && l.displayTime === state.bestLap;
@@ -658,12 +841,11 @@
           <td class="${isBest ? 'lap-record' : ''}">${isBest ? '<i class="crown-icon">👑</i>' : ''}${l.active ? l.displayTime.toFixed(3) + 's' : '<span style="color:var(--danger)">KOMBI</span>'}</td>
           <td><div class="img-pair"><div class="img-container"><span class="img-label">IN</span>${l.preImg ? `<img src="${l.preImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div>
           <div class="img-container"><span class="img-label">OUT</span>${l.postImg ? `<img src="${l.postImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div></div></td>
-          <td><button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">${l.active ? 'WERTEN' : 'ZUSAMMEN'}</button></td>`;
+          <td><button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">${l.active ? btnValidTxt : btnCombineTxt}</button></td>`;
         lapTableBody.appendChild(row);
     });
   }
 
-  /* Import Modal Logic */
   function openImportModal() { document.getElementById('importModal').style.display = 'flex'; document.getElementById('importArea').focus(); }
   function closeImportModal() { document.getElementById('importModal').style.display = 'none'; document.getElementById('importArea').value = ""; }
 
@@ -677,8 +859,9 @@
         const date = parts[1].trim(); const timeStr = parts[2].trim();
         const rawLap = parseFloat(parts[3].replace(',', '.'));
         const status = parts[4] ? parts[4].toLowerCase() : 'aktiv';
+        const isActive = status.includes('aktiv') || status.includes('werten') || status.includes('active') || status.includes('valid');
         if (!isNaN(rawLap)) {
-          state.laps.push({ id: Date.now() + importedCount, rawTime: rawLap, displayTime: rawLap, active: status.includes('aktiv') || status.includes('werten'), date: date || new Date().toLocaleDateString('de-DE'), timestamp: timeStr || new Date().toLocaleTimeString('de-DE'), preImg: null, postImg: null });
+          state.laps.push({ id: Date.now() + importedCount, rawTime: rawLap, displayTime: rawLap, active: isActive, date: date || new Date().toLocaleDateString('de-DE'), timestamp: timeStr || new Date().toLocaleTimeString('de-DE'), preImg: null, postImg: null });
           importedCount++;
         }
       }
@@ -686,19 +869,30 @@
     if (importedCount > 0) { recalculateAndUI(); closeImportModal(); }
   }
 
-  function clearSession() { if(confirm("Alle Daten löschen?")) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace(); } }
+  function clearSession() { if(confirm(translations[currentLang].confirm_reset)) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace(); } }
+  
   function copyToClipboard() {
     let tableData = "Runde\tDatum\tUhrzeit\tRundenzeit (s)\tStatus\n";
-    state.laps.forEach((l, i) => { tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${l.displayTime.toFixed(3)}\t${l.active?'Aktiv':'Passiv'}\n`; });
+    state.laps.forEach((l, i) => { 
+        const statusLabel = l.active ? translations[currentLang].table_status_active : translations[currentLang].table_status_passive;
+        tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${l.displayTime.toFixed(3)}\t${statusLabel}\n`; 
+    });
     navigator.clipboard.writeText(tableData).then(() => {
-        const btn = document.querySelector('.btn-accent'); const oldTxt = btn.innerText;
-        btn.innerText = "KOPIERT!"; setTimeout(() => btn.innerText = oldTxt, 1500);
+        const btn = document.getElementById('btnCopy'); 
+        const oldTxt = translations[currentLang].btn_copy;
+        btn.innerText = translations[currentLang].btn_copied; 
+        setTimeout(() => btn.innerText = oldTxt, 1500);
     });
   }
+
   function exportCSV() {
     if (state.laps.length === 0) return;
-    let csvContent = "\uFEFFRunde;Datum;Uhrzeit;Rundenzeit (s);Status\n";
-    state.laps.forEach((l, i) => { csvContent += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${l.active?'Aktiv':'Passiv'}\n`; });
+    let csvHeader = currentLang === 'de' ? "Runde;Datum;Uhrzeit;Rundenzeit (s);Status" : "Round;Date;Time;Laptime (s);Status";
+    let csvContent = "\uFEFF" + csvHeader + "\n";
+    state.laps.forEach((l, i) => { 
+        const statusLabel = l.active ? translations[currentLang].table_status_active : translations[currentLang].table_status_passive;
+        csvContent += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${statusLabel}\n`; 
+    });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `FPV_Race_${new Date().toISOString().slice(0,10)}.csv`; link.click();
   }
