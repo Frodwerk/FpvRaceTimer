@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FPV Pro Race Timer - V4.5 (Record Voice)</title>
+  <title>FPV Pro Race Timer - V5.2 (Modal Import)</title>
+  
+  <!-- 
+    ÄNDERUNGSHISTORIE / CHANGELOG:
+    V5.2:
+    - UX: Import-Textarea in ein Modal-Fenster ausgelagert.
+    - UI: Neuer "IMPORT" Button in der Action-Bar.
+    - UI: Design-Anpassungen für das Import-Modal (Overlay).
+
+    V5.1:
+    - Feature: Import-Funktion wiederhergestellt mit "Smart Paste".
+  -->
+
   <style>
     :root {
       --primary: #10b981;
@@ -14,8 +26,8 @@
       --text: #f1f5f9;
       --text-muted: #94a3b8;
       --highlight: rgba(245, 158, 11, 0.15);
-      --highlight-border: rgba(245, 158, 11, 0.5);
       --crown-color: #ffd700;
+      --modal-bg: rgba(15, 23, 42, 0.95);
     }
 
     body {
@@ -76,7 +88,7 @@
     }
 
     .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-value { font-size: 18px; font-weight: 700; display: block; margin-top: 4px; }
+    .stat-value { font-size: 18px; font-weight: 700; display: block; margin-top: 4px; font-family: monospace; }
 
     .action-bar {
       display: flex;
@@ -87,7 +99,7 @@
 
     button {
       flex: 1;
-      min-width: 120px;
+      min-width: 100px;
       padding: 12px;
       border: none;
       border-radius: 10px;
@@ -104,6 +116,7 @@
     .btn-stop { background: var(--danger); color: white; }
     .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text); }
     .btn-accent { background: #6366f1; color: white; }
+    .btn-import { background: #8b5cf6; color: white; }
     
     .btn-toggle-lap { 
       background: transparent; 
@@ -134,6 +147,54 @@
       color: white;
       padding: 8px;
       border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    /* Modal Styles */
+    #importModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: var(--modal-bg);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      width: 90%;
+      max-width: 500px;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title { font-size: 18px; font-weight: bold; }
+
+    .modal-textarea {
+      width: 100%;
+      height: 200px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: none;
+      box-sizing: border-box;
+      margin-bottom: 15px;
     }
 
     .table-container {
@@ -146,59 +207,23 @@
 
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; padding: 12px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid #334155; position: sticky; top: 0; background: #1e293b; z-index: 10; }
-    td { padding: 12px; border-bottom: 1px solid #334155; font-size: 13px; vertical-align: middle; transition: background 0.3s; }
+    td { padding: 12px; border-bottom: 1px solid #334155; font-size: 13px; vertical-align: middle; transition: background 0.3s; font-family: monospace; }
 
     .lap-record { color: var(--warning); font-weight: bold; }
     .crown-icon { color: var(--crown-color); margin-right: 5px; font-style: normal; }
-    .lap-inactive { opacity: 0.4; background: rgba(0,0,0,0.1) !important; }
-    .lap-triple-highlight { background: var(--highlight) !important; border-left: 4px solid var(--warning); }
     
-    .img-pair { display: flex; gap: 4px; }
+    .img-pair { display: flex; gap: 6px; padding: 4px 0; }
+    .img-container { position: relative; }
     .img-preview { 
-      width: 80px; 
-      height: 60px; 
-      border-radius: 4px; 
+      width: 100px; 
+      height: 75px; 
+      border-radius: 6px; 
       object-fit: cover; 
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.15);
       display: block;
       background: #000;
     }
-    .img-label { font-size: 8px; color: var(--text-muted); display: block; text-align: center; margin-bottom: 2px; }
-
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-content {
-      background: var(--card-bg);
-      padding: 25px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 600px;
-      box-shadow: 0 0 40px rgba(0,0,0,0.5);
-    }
-    .modal-content h3 { margin-top: 0; color: var(--primary); }
-    .modal-content textarea {
-      width: 100%;
-      height: 200px;
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: var(--text);
-      padding: 10px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 12px;
-      margin: 15px 0;
-      resize: none;
-    }
-    .modal-actions { display: flex; gap: 10px; }
+    .img-label { font-size: 9px; font-weight: bold; color: var(--text-muted); display: block; text-align: center; margin-bottom: 4px; font-family: sans-serif; }
 
     #hud {
       position: absolute;
@@ -218,7 +243,31 @@
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
       color: white;
       z-index: 10;
+      font-family: monospace;
     }
+
+    #countdown {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.7);
+      font-size: 150px;
+      font-weight: bold;
+      z-index: 20;
+    }
+    
+    .status-light {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-active { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+    .status-idle { background: #475569; }
   </style>
 </head>
 <body>
@@ -227,19 +276,22 @@
   <div class="video-wrapper">
     <canvas id="raceCanvas" width="640" height="480"></canvas>
     <div class="gate-overlay line-v" id="gateLine"></div>
-    <div id="hud">SENS: <span id="sensDisp">40</span> | <span id="statusTxt">BEREIT</span></div>
-    <div id="big-timer">0.00</div>
-    <div id="countdown" style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.7); font-size:120px; font-weight:bold; z-index:20;">3</div>
+    <div id="hud">
+      <span id="statusLight" class="status-light status-idle"></span>
+      SENS: <span id="sensDisp">40</span> | <span id="statusTxt">BEREIT</span>
+    </div>
+    <div id="big-timer">0.000</div>
+    <div id="countdown">3</div>
   </div>
 
   <div class="dashboard">
     <div class="stat-box">
       <span class="stat-label">Beste Runde</span>
-      <span class="stat-value" id="val-best">--.--</span>
+      <span class="stat-value" id="val-best">--.---</span>
     </div>
     <div class="stat-box">
       <span class="stat-label">Letzte Runde</span>
-      <span class="stat-value" id="val-last">--.--</span>
+      <span class="stat-value" id="val-last">--.---</span>
     </div>
     <div class="stat-box">
       <span class="stat-label">Aktive Runden</span>
@@ -247,16 +299,16 @@
     </div>
     <div class="stat-box">
       <span class="stat-label">Beste 3 Runden</span>
-      <span class="stat-value" id="val-triple">--.--</span>
+      <span class="stat-value" id="val-triple">--.---</span>
     </div>
   </div>
 
   <div class="action-bar">
     <button id="btnToggle" class="btn-main" onclick="handleMainAction()">START</button>
-    <button class="btn-secondary" onclick="clearSession()">RESET</button>
+    <button class="btn-import" onclick="openImportModal()">IMPORT</button>
     <button class="btn-accent" onclick="copyToClipboard()">KOPIEREN</button>
     <button class="btn-secondary" onclick="exportCSV()">EXPORT (CSV)</button>
-    <button class="btn-secondary" onclick="openImportModal()">IMPORT (TABELLE)</button>
+    <button class="btn-secondary" style="background:var(--danger); color:white" onclick="clearSession()">RESET</button>
   </div>
 
   <div class="settings-panel">
@@ -290,7 +342,7 @@
           <th>#</th>
           <th>DATUM / ZEIT</th>
           <th>DAUER</th>
-          <th>BILDER (TRIGGER-PUNKT)</th>
+          <th>VORSCHAU (TRIGGER-CHECK)</th>
           <th>STATUS</th>
         </tr>
       </thead>
@@ -299,14 +351,17 @@
   </div>
 </div>
 
-<!-- Import Modal -->
-<div id="importModal" class="modal">
+<!-- Modal für Import -->
+<div id="importModal">
   <div class="modal-content">
-    <h3>Daten importieren</h3>
-    <p style="font-size: 12px; color: var(--text-muted);">Füge hier die kopierten Tabellendaten ein (CSV oder Tab-getrennt):</p>
-    <textarea id="importArea" placeholder="Runde;Datum;Uhrzeit;Rundenzeit (s);Status..."></textarea>
-    <div class="modal-actions">
-      <button class="btn-main" onclick="processImport()">IMPORTIEREN</button>
+    <div class="modal-header">
+      <span class="modal-title">Daten importieren</span>
+      <button onclick="closeImportModal()" style="min-width:auto; padding:5px; background:transparent; color:var(--text-muted); font-size:20px;">×</button>
+    </div>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).</p>
+    <textarea id="importArea" class="modal-textarea" placeholder="Beispiel: 1   16.04.2024   12:00:00   2.500   Aktiv"></textarea>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-main" onclick="importFromText()">IMPORTIEREN</button>
       <button class="btn-secondary" onclick="closeImportModal()">ABBRECHEN</button>
     </div>
   </div>
@@ -330,13 +385,50 @@
     gateStatus: 0, 
     readyTimestamp: 0,
     lockoutUntil: 0,
-    preImage: null 
+    preImage: null,
+    audioCtx: null
   };
 
   const video = document.createElement('video');
   const canvas = document.getElementById('raceCanvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const lapTableBody = document.getElementById('lapTableBody');
+
+  function initAudio() {
+    if (!state.audioCtx) {
+      state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  function playSound(freq, duration, type = 'sine', volume = 0.2, delay = 0) {
+    initAudio();
+    const osc = state.audioCtx.createOscillator();
+    const gain = state.audioCtx.createGain();
+    const startTime = state.audioCtx.currentTime + delay;
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(volume, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(state.audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  }
+
+  function playPassBeep() { playSound(880, 0.1, 'square', 0.15); }
+  function playRecordFanfare() {
+    const vol = 0.15;
+    playSound(523.25, 0.1, 'sine', vol, 0);     
+    playSound(659.25, 0.1, 'sine', vol, 0.08);  
+    playSound(783.99, 0.15, 'sine', vol, 0.16); 
+    playSound(1046.5, 0.25, 'sine', vol, 0.25); 
+  }
+  function playRaceCountdown(isFinal) {
+    if (isFinal) playSound(880, 0.5, 'sine', 0.3);
+    else playSound(440, 0.2, 'sine', 0.2);
+  }
 
   async function init() {
     updateSens(state.sensitivity);
@@ -352,122 +444,109 @@
       });
       startStream(cams[0]?.deviceId);
     } catch (e) { console.error("Kamerafehler", e); }
-    requestAnimationFrame(processFrame);
+    runAnalysisLoop();
+    requestAnimationFrame(renderLoop);
   }
 
   async function startStream(id) {
     if (window.stream) window.stream.getTracks().forEach(t => t.stop());
-    const constraints = { video: id ? { deviceId: id } : { facingMode: 'environment' } };
-    window.stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = window.stream;
-    video.setAttribute('playsinline', true);
-    video.play();
+    const constraints = { video: { deviceId: id ? { exact: id } : undefined, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } } };
+    try {
+        window.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = window.stream; video.setAttribute('playsinline', true); video.play();
+    } catch(err) {
+        window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = window.stream; video.play();
+    }
   }
 
   function switchCam(id) { startStream(id); }
-
-  function updateSens(v) {
-    state.sensitivity = parseInt(v);
-    document.getElementById('sensDisp').innerText = v;
-  }
-
+  function updateSens(v) { state.sensitivity = parseInt(v); document.getElementById('sensDisp').innerText = v; }
   function updateGateUI(dir) {
     const gate = document.getElementById('gateLine');
     gate.className = (dir === 'LR' || dir === 'RL') ? 'gate-overlay line-v' : 'gate-overlay line-h';
     resetGateStatus();
   }
-
-  function resetGateStatus() {
-    state.gateStatus = 0;
-    state.readyTimestamp = 0;
-    state.lockoutUntil = 0;
-    state.preImage = null;
-  }
+  function resetGateStatus() { state.gateStatus = 0; state.readyTimestamp = 0; state.lockoutUntil = 0; state.preImage = null; }
 
   function handleMainAction() {
+    initAudio();
     if (state.running || state.armed) stopRace();
     else startCountdown();
   }
 
   function startCountdown() {
     const cd = document.getElementById('countdown');
-    cd.style.display = 'flex';
-    let count = 3;
-    cd.innerText = count;
-    announce(count);
-    
+    cd.style.display = 'flex'; cd.style.color = '#ef4444';
+    let count = 3; cd.innerText = count; playRaceCountdown(false);
     const itv = setInterval(() => {
       count--;
       if (count <= 0) {
-        clearInterval(itv);
-        cd.style.display = 'none';
-        state.armed = true;
-        resetGateStatus();
+        clearInterval(itv); playRaceCountdown(true); cd.innerText = "GO!"; cd.style.color = '#10b981';
+        setTimeout(() => { cd.style.display = 'none'; }, 500);
+        state.armed = true; resetGateStatus();
         document.getElementById('statusTxt').innerText = "SCHARF";
-        document.getElementById('btnToggle').innerText = "STOPP";
-        document.getElementById('btnToggle').className = "btn-stop";
-        announce("Los");
-      } else {
-        cd.innerText = count;
-        announce(count);
-      }
+        document.getElementById('statusLight').className = "status-light status-active";
+        document.getElementById('btnToggle').innerText = "STOPP"; document.getElementById('btnToggle').className = "btn-stop";
+      } else { cd.innerText = count; playRaceCountdown(false); }
     }, 1000);
   }
 
   function stopRace() {
-    state.running = false;
-    state.armed = false;
-    resetGateStatus();
+    state.running = false; state.armed = false; resetGateStatus();
     document.getElementById('statusTxt').innerText = "BEREIT";
-    document.getElementById('btnToggle').innerText = "START";
-    document.getElementById('btnToggle').className = "btn-main";
-    document.getElementById('big-timer').innerText = "0.00";
+    document.getElementById('statusLight').className = "status-light status-idle";
+    document.getElementById('btnToggle').innerText = "START"; document.getElementById('btnToggle').className = "btn-main";
+    document.getElementById('big-timer').innerText = "0.000";
   }
 
-  function processFrame() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      ctx.drawImage(video, 0, 0, 640, 480);
-      const currentFrameData = ctx.getImageData(0, 0, 640, 480);
-      
-      if (state.lastFrame) detectMotion(currentFrameData, state.lastFrame);
-      state.lastFrame = currentFrameData;
+  function runAnalysisLoop() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) analyzeFrame();
+    setTimeout(runAnalysisLoop, 8); 
+  }
 
-      if (state.currentX !== null) drawTriggerCircle(ctx, state.currentX, state.currentY, state.gateStatus);
+  function analyzeFrame() {
+    ctx.drawImage(video, 0, 0, 640, 480);
+    const currentFrameData = ctx.getImageData(0, 0, 640, 480);
+    if (state.lastFrame) detectMotion(currentFrameData, state.lastFrame);
+    state.lastFrame = currentFrameData;
+  }
 
-      if (state.running) {
-        const elapsed = (Date.now() - state.lastPassTime) / 1000;
-        document.getElementById('big-timer').innerText = elapsed.toFixed(2);
-      }
+  function renderLoop() {
+    if (state.currentX !== null) drawTriggerHUD(ctx, state.currentX, state.currentY, state.gateStatus, false);
+    if (state.running) {
+        const elapsed = (performance.now() - state.lastPassTime) / 1000;
+        document.getElementById('big-timer').innerText = elapsed.toFixed(3);
     }
-    requestAnimationFrame(processFrame);
+    requestAnimationFrame(renderLoop);
   }
 
-  function drawTriggerCircle(targetCtx, x, y, status) {
-    targetCtx.fillStyle = status === 1 ? '#10b981' : (status === -1 ? '#ef4444' : '#f59e0b'); 
-    targetCtx.beginPath();
-    targetCtx.arc(x, y, 15, 0, Math.PI * 2);
-    targetCtx.fill();
-    targetCtx.strokeStyle = 'white';
-    targetCtx.lineWidth = 2;
-    targetCtx.stroke();
+  function drawTriggerHUD(targetCtx, x, y, status, isPreview = false) {
+    const dir = document.getElementById('dirSelect').value;
+    const lineThickness = isPreview ? 5 : 3;
+    const markerSize = isPreview ? 22 : 15;
+    targetCtx.shadowBlur = 10; targetCtx.shadowColor = '#10b981'; targetCtx.beginPath();
+    targetCtx.setLineDash([10, 8]); targetCtx.strokeStyle = '#10b981'; targetCtx.lineWidth = lineThickness;
+    if (dir === 'LR' || dir === 'RL') { targetCtx.moveTo(320, 0); targetCtx.lineTo(320, 480); } 
+    else { targetCtx.moveTo(0, 240); targetCtx.lineTo(640, 240); }
+    targetCtx.stroke(); targetCtx.shadowBlur = 0; targetCtx.setLineDash([]);
+    const color = status === 1 ? '#10b981' : (status === -1 ? '#ef4444' : '#f59e0b');
+    targetCtx.fillStyle = 'white'; targetCtx.beginPath(); targetCtx.arc(x, y, markerSize + 4, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.fillStyle = color; targetCtx.beginPath(); targetCtx.arc(x, y, markerSize, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.strokeStyle = 'black'; targetCtx.lineWidth = 2; targetCtx.stroke();
   }
 
   function captureCurrentView(x, y, status) {
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 640;
-    tempCanvas.height = 480;
+    tempCanvas.width = 640; tempCanvas.height = 480;
     const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(canvas, 0, 0);
-    drawTriggerCircle(tempCtx, x, y, status);
-    return tempCanvas.toDataURL('image/jpeg', 0.2);
+    tempCtx.drawImage(canvas, 0, 0); drawTriggerHUD(tempCtx, x, y, status, true);
+    return tempCanvas.toDataURL('image/jpeg', 0.4);
   }
 
   function detectMotion(now, prev) {
-    const dNow = now.data;
-    const dPrev = prev.data;
-    let motionX = 0, motionY = 0, count = 0;
-    const step = 6; 
-
+    const dNow = now.data; const dPrev = prev.data;
+    let motionX = 0, motionY = 0, count = 0; const step = 8; 
     for (let y = 0; y < 480; y += step) {
       for (let x = 0; x < 640; x += step) {
         const i = (y * 640 + x) * 4;
@@ -475,303 +554,153 @@
         if (diff > 30) { motionX += x; motionY += y; count++; }
       }
     }
-
     if (count > state.sensitivity) {
       state.prevX = state.currentX; state.prevY = state.currentY;
       state.currentX = motionX / count; state.currentY = motionY / count;
       checkTrigger(state.currentX, state.currentY);
     } else {
-      if (Date.now() - state.readyTimestamp > 200) {
-         state.currentX = null; state.currentY = null;
-         state.gateStatus = 0; state.preImage = null;
-      }
+      if (performance.now() - state.readyTimestamp > 150) { state.currentX = null; state.currentY = null; state.gateStatus = 0; state.preImage = null; }
     }
   }
 
   function checkTrigger(x, y) {
     if (!state.armed && !state.running) return;
-    const now = Date.now();
+    const now = performance.now();
     if (now < state.lockoutUntil) return;
-
     const dir = document.getElementById('dirSelect').value;
     const minS = parseFloat(document.getElementById('minLap').value) * 1000;
     const midX = 320, midY = 240;
-
     let inPreZone = false, inPostZone = false, vectorCorrect = false;
-
-    if (dir === 'LR') {
-      inPreZone = (x < midX + 5); inPostZone = (x > midX - 5);
-      if (state.prevX !== null) vectorCorrect = (x > state.prevX + 1);
-    } else if (dir === 'RL') {
-      inPreZone = (x > midX - 5); inPostZone = (x < midX + 5);
-      if (state.prevX !== null) vectorCorrect = (x < state.prevX - 1);
-    } else if (dir === 'TB') {
-      inPreZone = (y < midY + 5); inPostZone = (y > midY - 5);
-      if (state.prevY !== null) vectorCorrect = (y > state.prevY + 1);
-    } else if (dir === 'BT') {
-      inPreZone = (y > midY - 5); inPostZone = (y < midY + 5);
-      if (state.prevY !== null) vectorCorrect = (y < state.prevY - 1);
-    }
-
-    if (inPreZone && !inPostZone) {
-      if (state.gateStatus !== 1) state.preImage = captureCurrentView(x, y, 1);
-      state.gateStatus = 1; state.readyTimestamp = now;
-    }
-
+    if (dir === 'LR') { inPreZone = (x < midX + 15); inPostZone = (x > midX - 15); if (state.prevX !== null) vectorCorrect = (x > state.prevX + 1); } 
+    else if (dir === 'RL') { inPreZone = (x > midX - 15); inPostZone = (x < midX + 15); if (state.prevX !== null) vectorCorrect = (x < state.prevX - 1); } 
+    else if (dir === 'TB') { inPreZone = (y < midY + 15); inPostZone = (y > midY - 15); if (state.prevY !== null) vectorCorrect = (y > state.prevY + 1); } 
+    else if (dir === 'BT') { inPreZone = (y > midY - 15); inPostZone = (y < midY + 15); if (state.prevY !== null) vectorCorrect = (y < state.prevY - 1); }
+    if (inPreZone && !inPostZone) { if (state.gateStatus !== 1) state.preImage = captureCurrentView(x, y, 1); state.gateStatus = 1; state.readyTimestamp = now; }
     if (inPostZone) {
-      const wasReady = (state.gateStatus === 1 && (now - state.readyTimestamp < 200));
+      const wasReady = (state.gateStatus === 1 && (now - state.readyTimestamp < 150));
       if (wasReady) {
         let finalTrigger = vectorCorrect;
         if (!finalTrigger) {
-          if (dir === 'LR' && x > midX + 15) finalTrigger = true;
-          if (dir === 'RL' && x < midX - 15) finalTrigger = true;
-          if (dir === 'TB' && y > midY + 15) finalTrigger = true;
-          if (dir === 'BT' && y < midY - 15) finalTrigger = true;
+          if (dir === 'LR' && x > midX + 10) finalTrigger = true; if (dir === 'RL' && x < midX - 10) finalTrigger = true;
+          if (dir === 'TB' && y > midY + 10) finalTrigger = true; if (dir === 'BT' && y < midY - 10) finalTrigger = true;
         }
-
-        if (finalTrigger && (now - state.lastPassTime > minS)) {
-          handlePass(now, x, y);
-          state.lockoutUntil = now + 1000; state.gateStatus = 0;
-        }
-      } else if (state.gateStatus === 0 && !inPreZone) {
-        state.gateStatus = -1;
-      }
+        if (finalTrigger && (now - state.lastPassTime > minS)) { handlePass(now, x, y); state.lockoutUntil = now + 800; state.gateStatus = 0; }
+      } else if (state.gateStatus === 0 && !inPreZone) state.gateStatus = -1;
     }
   }
 
   function handlePass(now, triggerX, triggerY) {
     const postImage = captureCurrentView(triggerX, triggerY, 1);
     const preImage = state.preImage || postImage;
-
     if (state.armed) {
-      state.armed = false; state.running = true; state.lastPassTime = now;
-      document.getElementById('statusTxt').innerText = "RENNEN LÄUFT";
-      announce("Start"); return;
+      playPassBeep(); state.armed = false; state.running = true; state.lastPassTime = now;
+      document.getElementById('statusTxt').innerText = "RENNEN LÄUFT"; announce("Start"); return;
     }
-
     const lapTime = (now - state.lastPassTime) / 1000;
     state.lastPassTime = now;
-    
-    // Alte Bestwerte speichern für Vergleich
-    const oldBestLap = state.bestLap;
-    const oldBestTriple = state.bestTriple;
-
-    const fullDate = new Date();
-    state.laps.push({
-      id: Date.now(),
-      rawTime: lapTime,
-      active: true,
-      date: fullDate.toLocaleDateString('de-DE'),
-      timestamp: fullDate.toLocaleTimeString('de-DE'),
-      preImg: preImage,
-      postImg: postImage
-    });
-
+    const oldBestLap = state.bestLap; const oldBestTriple = state.bestTriple; const fullDate = new Date();
+    state.laps.push({ id: Date.now(), rawTime: lapTime, active: true, date: fullDate.toLocaleDateString('de-DE'), timestamp: fullDate.toLocaleTimeString('de-DE'), preImg: preImage, postImg: postImage });
     recalculateAndUI();
-    
-    // Prüfen ob Rekorde gebrochen wurden
     const isNewLapRecord = state.bestLap < oldBestLap && state.bestLap !== Infinity;
     const isNewTripleRecord = state.bestTriple < oldBestTriple && state.bestTriple !== Infinity;
+    const activeLaps = state.laps.filter(l => l.active); const displayTime = activeLaps[activeLaps.length - 1]?.displayTime || lapTime;
+    if (isNewLapRecord || isNewTripleRecord) playRecordFanfare(); else playPassBeep();
+    setTimeout(() => {
+        let voiceMsg = ""; if (isNewLapRecord) voiceMsg += "Bestzeit! "; if (isNewTripleRecord) voiceMsg += "Triple Rekord! ";
+        voiceMsg += displayTime.toFixed(2).replace('.', ' komma '); announce(voiceMsg);
+    }, 450); 
+  }
 
-    const activeLaps = state.laps.filter(l => l.active);
-    const lastActiveLap = activeLaps[activeLaps.length - 1];
-    const displayTime = lastActiveLap ? lastActiveLap.displayTime : lapTime;
-
-    let voiceMsg = "";
-    if (isNewLapRecord) voiceMsg += "Neue Bestzeit. ";
-    if (isNewTripleRecord) voiceMsg += "Neuer Triple Rekord. ";
-    voiceMsg += displayTime.toFixed(1);
-
-    announce(voiceMsg);
+  function announce(txt) {
+    if (!txt) return; window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(txt.toString()); msg.lang = 'de-DE'; msg.rate = 2.1; msg.volume = 1.0; window.speechSynthesis.speak(msg);
   }
 
   function toggleLap(lapId) {
     const lap = state.laps.find(l => l.id === lapId);
-    if (lap) {
-      lap.active = !lap.active;
-      recalculateAndUI();
-    }
+    if (lap) { lap.active = !lap.active; recalculateAndUI(); }
   }
 
   function recalculateAndUI() {
-    let carryOver = 0;
-    const activeLaps = [];
-
+    let carryOver = 0; const activeLaps = [];
     state.laps.forEach(lap => {
       lap.displayTime = lap.rawTime + carryOver;
-      if (lap.active) {
-        activeLaps.push(lap);
-        carryOver = 0;
-      } else {
-        carryOver = lap.displayTime;
-      }
+      if (lap.active) { activeLaps.push(lap); carryOver = 0; } else { carryOver = lap.displayTime; }
     });
-
-    if (activeLaps.length === 0) {
-      state.bestLap = Infinity;
-      state.bestTriple = Infinity;
-      state.tripleIndices = [];
-    } else {
-      state.bestLap = Math.min(...activeLaps.map(l => l.displayTime));
-      state.bestTriple = Infinity;
-      state.tripleIndices = [];
+    if (activeLaps.length === 0) { state.bestLap = Infinity; state.bestTriple = Infinity; state.tripleIndices = []; } 
+    else {
+      state.bestLap = Math.min(...activeLaps.map(l => l.displayTime)); state.bestTriple = Infinity; state.tripleIndices = [];
       if (activeLaps.length >= 3) {
         for (let i = 0; i <= activeLaps.length - 3; i++) {
           const sum = activeLaps[i].displayTime + activeLaps[i+1].displayTime + activeLaps[i+2].displayTime;
-          if (sum < state.bestTriple) {
-            state.bestTriple = sum;
-            state.tripleIndices = [activeLaps[i].id, activeLaps[i+1].id, activeLaps[i+2].id];
-          }
+          if (sum < state.bestTriple) { state.bestTriple = sum; state.tripleIndices = [activeLaps[i].id, activeLaps[i+1].id, activeLaps[i+2].id]; }
         }
       }
     }
-    updateUI(activeLaps.length);
+    updateUI(activeCount = activeLaps.length);
   }
 
   function updateUI(activeCount) {
     document.getElementById('val-count').innerText = activeCount;
     const activeOnly = state.laps.filter(l => l.active);
-    
     if (activeOnly.length > 0) {
-      document.getElementById('val-last').innerText = activeOnly[activeOnly.length-1].displayTime.toFixed(2);
-      document.getElementById('val-best').innerText = state.bestLap === Infinity ? '--.--' : state.bestLap.toFixed(2);
-    } else {
-      document.getElementById('val-last').innerText = '--.--';
-      document.getElementById('val-best').innerText = '--.--';
-    }
-    document.getElementById('val-triple').innerText = state.bestTriple === Infinity ? '--.--' : state.bestTriple.toFixed(2);
-
+      document.getElementById('val-last').innerText = activeOnly[activeOnly.length-1].displayTime.toFixed(3);
+      document.getElementById('val-best').innerText = state.bestLap === Infinity ? '--.---' : state.bestLap.toFixed(3);
+    } else { document.getElementById('val-last').innerText = '--.---'; document.getElementById('val-best').innerText = '--.---'; }
+    document.getElementById('val-triple').innerText = state.bestTriple === Infinity ? '--.---' : state.bestTriple.toFixed(3);
     lapTableBody.innerHTML = "";
     [...state.laps].reverse().forEach((l, idx) => {
-        const actualIdx = state.laps.indexOf(l);
+        const row = document.createElement('tr');
         const isTriple = state.tripleIndices.includes(l.id);
         const isBest = l.active && l.displayTime === state.bestLap;
-        const row = document.createElement('tr');
-        
-        if (!l.active) row.className = "lap-inactive";
-        else if (isTriple) row.className = "lap-triple-highlight";
-
-        row.innerHTML = `
-          <td>${actualIdx + 1}</td>
-          <td><span style="font-size:10px; color:var(--text-muted)">${l.date}</span><br>${l.timestamp}</td>
-          <td class="${isBest ? 'lap-record' : ''}">
-            ${isBest ? '<i class="crown-icon">👑</i>' : ''}
-            ${l.active ? l.displayTime.toFixed(2) + 's' : '<span style="color:var(--danger)">IGNORIERT</span>'}
-          </td>
-          <td>
-            <div class="img-pair">
-                <div><span class="img-label">TRIGGER</span>${l.preImg ? `<img src="${l.preImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div>
-                <div><span class="img-label">PASS</span>${l.postImg ? `<img src="${l.postImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div>
-            </div>
-          </td>
-          <td>
-            <button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">
-              ${l.active ? 'WERTEN' : 'ZUSAMMENFÜHREN'}
-            </button>
-          </td>
-        `;
+        if (!l.active) row.style.opacity = "0.4"; else if (isTriple) row.style.background = "var(--highlight)";
+        row.innerHTML = `<td>${state.laps.indexOf(l) + 1}</td><td><span style="font-size:10px; color:var(--text-muted)">${l.date}</span><br>${l.timestamp}</td>
+          <td class="${isBest ? 'lap-record' : ''}">${isBest ? '<i class="crown-icon">👑</i>' : ''}${l.active ? l.displayTime.toFixed(3) + 's' : '<span style="color:var(--danger)">KOMBI</span>'}</td>
+          <td><div class="img-pair"><div class="img-container"><span class="img-label">IN</span>${l.preImg ? `<img src="${l.preImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div>
+          <div class="img-container"><span class="img-label">OUT</span>${l.postImg ? `<img src="${l.postImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div></div></td>
+          <td><button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">${l.active ? 'WERTEN' : 'ZUSAMMEN'}</button></td>`;
         lapTableBody.appendChild(row);
     });
   }
 
-  function announce(txt) {
-    if (!txt) return;
-    const msg = new SpeechSynthesisUtterance(txt);
-    msg.lang = 'de-DE'; msg.rate = 1.6; window.speechSynthesis.speak(msg);
-  }
+  /* Import Modal Logic */
+  function openImportModal() { document.getElementById('importModal').style.display = 'flex'; document.getElementById('importArea').focus(); }
+  function closeImportModal() { document.getElementById('importModal').style.display = 'none'; document.getElementById('importArea').value = ""; }
 
-  function clearSession() {
-    if(confirm("Alle Daten löschen?")) {
-      state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity;
-      lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace();
-    }
-  }
-
-  function copyToClipboard() {
-    let csv = "Runde;Datum;Uhrzeit;Rundenzeit (s);Status\n";
-    state.laps.forEach((l, i) => {
-      csv += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${l.active?'Aktiv':'Ignoriert'}\n`;
-    });
-    navigator.clipboard.writeText(csv).then(() => {
-        const btn = document.querySelector('.btn-accent');
-        const oldTxt = btn.innerText;
-        btn.innerText = "KOPIERT!";
-        setTimeout(() => btn.innerText = oldTxt, 1500);
-    });
-  }
-
-  function exportCSV() {
-    if (state.laps.length === 0) return alert("Keine Daten vorhanden!");
-    let csvContent = "\uFEFFRunde;Datum;Uhrzeit;Rundenzeit (s);Status\n";
-    state.laps.forEach((l, i) => {
-      csvContent += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${l.active?'Aktiv':'Ignoriert'}\n`;
-    });
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `FPV_Race_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-  }
-
-  // --- Modal Logic ---
-  function openImportModal() { document.getElementById('importModal').style.display = 'flex'; }
-  function closeImportModal() { 
-    document.getElementById('importModal').style.display = 'none';
-    document.getElementById('importArea').value = "";
-  }
-
-  function processImport() {
-    const text = document.getElementById('importArea').value.trim();
-    if (!text) return closeImportModal();
-
-    const lines = text.split('\n');
-    const newLaps = [];
-    let importedCount = 0;
-
-    lines.forEach((line, index) => {
-      if (index === 0 && (line.includes('Runde') || line.includes('Datum'))) return;
-
-      let parts = [];
-      if (line.includes(';')) parts = line.split(';');
-      else if (line.includes('\t')) parts = line.split('\t');
-      else parts = line.split(',');
-
+  function importFromText() {
+    const text = document.getElementById('importArea').value;
+    if (!text) return;
+    const lines = text.split('\n'); let importedCount = 0;
+    lines.forEach(line => {
+      const parts = line.split(/\t|;/);
       if (parts.length >= 4) {
-        let timeStr = parts[3].trim().replace(',', '.').replace('s', '');
-        let time = parseFloat(timeStr);
-        let statusStr = parts[4] ? parts[4].trim().toLowerCase() : 'aktiv';
-
-        if (!isNaN(time)) {
-          newLaps.push({
-            id: Date.now() + importedCount,
-            rawTime: time,
-            active: statusStr !== 'ignoriert' && statusStr !== 'deaktiviert',
-            date: parts[1].trim(),
-            timestamp: parts[2].trim(),
-            preImg: null, 
-            postImg: null
-          });
+        const date = parts[1].trim(); const timeStr = parts[2].trim();
+        const rawLap = parseFloat(parts[3].replace(',', '.'));
+        const status = parts[4] ? parts[4].toLowerCase() : 'aktiv';
+        if (!isNaN(rawLap)) {
+          state.laps.push({ id: Date.now() + importedCount, rawTime: rawLap, displayTime: rawLap, active: status.includes('aktiv') || status.includes('werten'), date: date || new Date().toLocaleDateString('de-DE'), timestamp: timeStr || new Date().toLocaleTimeString('de-DE'), preImg: null, postImg: null });
           importedCount++;
         }
       }
     });
-
-    if (newLaps.length > 0) {
-      if (state.laps.length > 0 && confirm(`${importedCount} Runden gefunden. Bestehende Liste ersetzen? (Abbrechen fügt sie hinzu)`)) {
-        state.laps = newLaps;
-      } else {
-        state.laps = [...state.laps, ...newLaps];
-      }
-      recalculateAndUI();
-      alert(`${importedCount} Runden erfolgreich importiert!`);
-      closeImportModal();
-    } else {
-      alert("Keine gültigen Daten gefunden. Bitte stelle sicher, dass das Format korrekt ist (Kopierte Tabelle).");
-    }
+    if (importedCount > 0) { recalculateAndUI(); closeImportModal(); }
   }
 
-  window.onclick = function(event) {
-    if (event.target == document.getElementById('importModal')) closeImportModal();
+  function clearSession() { if(confirm("Alle Daten löschen?")) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace(); } }
+  function copyToClipboard() {
+    let tableData = "Runde\tDatum\tUhrzeit\tRundenzeit (s)\tStatus\n";
+    state.laps.forEach((l, i) => { tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${l.displayTime.toFixed(3)}\t${l.active?'Aktiv':'Passiv'}\n`; });
+    navigator.clipboard.writeText(tableData).then(() => {
+        const btn = document.querySelector('.btn-accent'); const oldTxt = btn.innerText;
+        btn.innerText = "KOPIERT!"; setTimeout(() => btn.innerText = oldTxt, 1500);
+    });
+  }
+  function exportCSV() {
+    if (state.laps.length === 0) return;
+    let csvContent = "\uFEFFRunde;Datum;Uhrzeit;Rundenzeit (s);Status\n";
+    state.laps.forEach((l, i) => { csvContent += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${l.active?'Aktiv':'Passiv'}\n`; });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `FPV_Race_${new Date().toISOString().slice(0,10)}.csv`; link.click();
   }
 
   init();
