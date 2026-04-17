@@ -37,7 +37,6 @@
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
 
-    /* Modern Language Toggle Switch */
     .header-bar {
       display: flex;
       justify-content: flex-end;
@@ -90,10 +89,6 @@
     input:checked + .slider {
       background-color: var(--primary);
       border-color: var(--primary);
-    }
-
-    input:focus + .slider {
-      box-shadow: 0 0 1px var(--primary);
     }
 
     input:checked + .slider:before {
@@ -202,7 +197,7 @@
       box-sizing: border-box;
     }
 
-    #importModal {
+    #modalContainer {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
@@ -319,12 +314,34 @@
     }
     .status-active { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
     .status-idle { background: #475569; }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-info {
+      background: transparent;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: auto;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- Modern Header with Toggle Switch -->
   <div class="header-bar">
     <span class="lang-label">DE</span>
     <label class="switch">
@@ -366,7 +383,7 @@
 
   <div class="action-bar">
     <button id="btnToggle" class="btn-main" onclick="handleMainAction()" data-i18n="btn_start">START</button>
-    <button class="btn-import" onclick="openImportModal()" data-i18n="btn_import">IMPORT</button>
+    <button class="btn-import" onclick="openModal('import')" data-i18n="btn_import">IMPORT</button>
     <button class="btn-accent" onclick="copyToClipboard()" id="btnCopy" data-i18n="btn_copy">KOPIEREN</button>
     <button class="btn-secondary" onclick="exportCSV()">EXPORT (CSV)</button>
     <button class="btn-secondary" style="background:var(--danger); color:white" onclick="clearSession()">RESET</button>
@@ -410,25 +427,20 @@
       <tbody id="lapTableBody"></tbody>
     </table>
   </div>
-</div>
 
-<div id="importModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="modal-title" data-i18n="modal_title">Daten importieren</span>
-      <button onclick="closeImportModal()" style="min-width:auto; padding:5px; background:transparent; color:var(--text-muted); font-size:20px;">×</button>
-    </div>
-    <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;" data-i18n="modal_desc">Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).</p>
-    <textarea id="importArea" class="modal-textarea" placeholder=""></textarea>
-    <div style="display:flex; gap:10px;">
-      <button class="btn-main" onclick="importFromText()" data-i18n="modal_btn_import">IMPORTIEREN</button>
-      <button class="btn-secondary" onclick="closeImportModal()" data-i18n="modal_btn_cancel">ABBRECHEN</button>
-    </div>
+  <div class="footer">
+    <p>FPV Pro Race Timer &copy; 2026</p>
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://frodwerk.github.io/FpvRaceTimer/&count_bg=%2310B981&title_bg=%23334155&icon=&icon_color=%23E7E7E7&title=Aufrufe&edge_flat=false" alt="Hits"/>
+    <button class="btn-info" onclick="openModal('privacy')" data-i18n="btn_privacy">Datenschutz-Info</button>
   </div>
 </div>
 
+<div id="modalContainer">
+  <!-- Dynamic Modal Content -->
+  <div id="modalContentWrapper" class="modal-content"></div>
+</div>
+
 <script>
-  // Internationalization
   let currentLang = 'de';
   const translations = {
     de: {
@@ -444,6 +456,7 @@
         btn_import: "IMPORT",
         btn_copy: "KOPIEREN",
         btn_copied: "KOPIERT!",
+        btn_privacy: "Datenschutz-Info",
         label_camera: "KAMERA",
         label_sensitivity: "SENSITIVITÄT",
         label_direction: "FLUG-RICHTUNG",
@@ -457,7 +470,7 @@
         table_preview: "VORSCHAU",
         table_status: "STATUS",
         modal_title: "Daten importieren",
-        modal_desc: "Füge hier Daten aus einer Tabelle oder einer CSV ein (Runde, Datum, Uhrzeit, Zeit, Status).",
+        modal_desc: "Füge hier Daten ein (Runde, Datum, Uhrzeit, Zeit, Status).",
         modal_btn_import: "IMPORTIEREN",
         modal_btn_cancel: "ABBRECHEN",
         table_btn_valid: "WERTEN",
@@ -468,7 +481,9 @@
         voice_start: "Start",
         voice_record: "Bestzeit! ",
         voice_triple: "Triple Rekord! ",
-        voice_point: " komma "
+        voice_point: " komma ",
+        privacy_title: "Datenschutz & Technik",
+        privacy_text: "Diese App verarbeitet Kamerabilder lokal in deinem Browser zur Bewegungserkennung. Es werden keine Videodaten gespeichert oder übertragen. Ein Hit-Counter (Bild) wird von hits.seeyoufarm.com geladen, um die Aufrufe anonym zu zählen. Das Hosting erfolgt über GitHub Pages."
     },
     en: {
         status_ready: "READY",
@@ -483,6 +498,7 @@
         btn_import: "IMPORT",
         btn_copy: "COPY",
         btn_copied: "COPIED!",
+        btn_privacy: "Privacy Info",
         label_camera: "CAMERA",
         label_sensitivity: "SENSITIVITY",
         label_direction: "FLIGHT DIRECTION",
@@ -496,7 +512,7 @@
         table_preview: "PREVIEW",
         table_status: "STATUS",
         modal_title: "Import Data",
-        modal_desc: "Paste data from a table or CSV here (Round, Date, Time, Duration, Status).",
+        modal_desc: "Paste data here (Round, Date, Time, Duration, Status).",
         modal_btn_import: "IMPORT",
         modal_btn_cancel: "CANCEL",
         table_btn_valid: "VALID",
@@ -507,34 +523,11 @@
         voice_start: "Start",
         voice_record: "New record! ",
         voice_triple: "Triple record! ",
-        voice_point: " point "
+        voice_point: " point ",
+        privacy_title: "Privacy & Technology",
+        privacy_text: "This app processes camera images locally in your browser for motion detection. No video data is stored or transmitted. A hit counter (image) is loaded from hits.seeyoufarm.com to count visits anonymously. Hosting is provided via GitHub Pages."
     }
   };
-
-  function toggleLanguage() {
-    const isChecked = document.getElementById('langToggle').checked;
-    currentLang = isChecked ? 'en' : 'de';
-    updateLanguageUI();
-  }
-
-  function updateLanguageUI() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[currentLang][key]) {
-            el.innerText = translations[currentLang][key];
-        }
-    });
-    
-    const statusTxt = document.getElementById('statusTxt');
-    if (!state.armed && !state.running) statusTxt.innerText = translations[currentLang].status_ready;
-    else if (state.armed) statusTxt.innerText = translations[currentLang].status_armed;
-    else if (state.running) statusTxt.innerText = translations[currentLang].status_running;
-
-    const btnToggle = document.getElementById('btnToggle');
-    btnToggle.innerText = (state.armed || state.running) ? translations[currentLang].btn_stop : translations[currentLang].btn_start;
-
-    recalculateAndUI();
-  }
 
   let state = {
     running: false,
@@ -558,22 +551,40 @@
   };
 
   let wakeLock = null;
+
   async function requestWakeLock() {
     try {
       if ('wakeLock' in navigator) {
         wakeLock = await navigator.wakeLock.request('screen');
       }
     } catch (err) {
-      console.log("WakeLock konnte nicht aktiviert werden:", err);
+      console.log("WakeLock failed:", err);
     }
   }
 
-  // WakeLock erneuern, falls der Nutzer den Tab kurz wechselt und zurückkehrt
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      requestWakeLock();
-    }
+    if (document.visibilityState === 'visible') requestWakeLock();
   });
+
+  function toggleLanguage() {
+    const isChecked = document.getElementById('langToggle').checked;
+    currentLang = isChecked ? 'en' : 'de';
+    updateLanguageUI();
+  }
+
+  function updateLanguageUI() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
+    });
+    const statusTxt = document.getElementById('statusTxt');
+    if (!state.armed && !state.running) statusTxt.innerText = translations[currentLang].status_ready;
+    else if (state.armed) statusTxt.innerText = translations[currentLang].status_armed;
+    else if (state.running) statusTxt.innerText = translations[currentLang].status_running;
+    const btnToggle = document.getElementById('btnToggle');
+    btnToggle.innerText = (state.armed || state.running) ? translations[currentLang].btn_stop : translations[currentLang].btn_start;
+    recalculateAndUI();
+  }
 
   const video = document.createElement('video');
   const canvas = document.getElementById('raceCanvas');
@@ -581,9 +592,7 @@
   const lapTableBody = document.getElementById('lapTableBody');
 
   function initAudio() {
-    if (!state.audioCtx) {
-      state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
 
   function playSound(freq, duration, type = 'sine', volume = 0.2, delay = 0) {
@@ -656,7 +665,7 @@
 
   function handleMainAction() {
     initAudio();
-    requestWakeLock(); // Browser fordern oft eine Nutzer-Interaktion für den WakeLock
+    requestWakeLock();
     if (state.running || state.armed) stopRace();
     else startCountdown();
   }
@@ -848,10 +857,6 @@
     } else { document.getElementById('val-last').innerText = '--.---'; document.getElementById('val-best').innerText = '--.---'; }
     document.getElementById('val-triple').innerText = state.bestTriple === Infinity ? '--.---' : state.bestTriple.toFixed(3);
     lapTableBody.innerHTML = "";
-    
-    const btnValidTxt = translations[currentLang].table_btn_valid;
-    const btnCombineTxt = translations[currentLang].table_btn_combine;
-
     [...state.laps].reverse().forEach((l) => {
         const row = document.createElement('tr');
         const isTriple = state.tripleIndices.includes(l.id);
@@ -861,13 +866,30 @@
           <td class="${isBest ? 'lap-record' : ''}">${isBest ? '<i class="crown-icon">👑</i>' : ''}${l.active ? l.displayTime.toFixed(3) + 's' : '<span style="color:var(--danger)">KOMBI</span>'}</td>
           <td><div class="img-pair"><div class="img-container"><span class="img-label">IN</span>${l.preImg ? `<img src="${l.preImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div>
           <div class="img-container"><span class="img-label">OUT</span>${l.postImg ? `<img src="${l.postImg}" class="img-preview">` : '<div class="img-preview"></div>'}</div></div></td>
-          <td><button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">${l.active ? btnValidTxt : btnCombineTxt}</button></td>`;
+          <td><button class="btn-toggle-lap ${l.active ? 'active' : 'inactive'}" onclick="toggleLap(${l.id})">${l.active ? translations[currentLang].table_btn_valid : translations[currentLang].table_btn_combine}</button></td>`;
         lapTableBody.appendChild(row);
     });
   }
 
-  function openImportModal() { document.getElementById('importModal').style.display = 'flex'; document.getElementById('importArea').focus(); }
-  function closeImportModal() { document.getElementById('importModal').style.display = 'none'; document.getElementById('importArea').value = ""; }
+  function openModal(type) {
+    const wrapper = document.getElementById('modalContentWrapper');
+    if (type === 'import') {
+      wrapper.innerHTML = `
+        <div class="modal-header"><span class="modal-title">${translations[currentLang].modal_title}</span><button onclick="closeModal()" style="min-width:auto; padding:5px; background:transparent; color:var(--text-muted); font-size:20px;">×</button></div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">${translations[currentLang].modal_desc}</p>
+        <textarea id="importArea" class="modal-textarea"></textarea>
+        <div style="display:flex; gap:10px;"><button class="btn-main" onclick="importFromText()">${translations[currentLang].modal_btn_import}</button><button class="btn-secondary" onclick="closeModal()">${translations[currentLang].modal_btn_cancel}</button></div>`;
+    } else {
+      wrapper.innerHTML = `
+        <div class="modal-header"><span class="modal-title">${translations[currentLang].privacy_title}</span><button onclick="closeModal()" style="min-width:auto; padding:5px; background:transparent; color:var(--text-muted); font-size:20px;">×</button></div>
+        <p style="font-size:13px; line-height:1.5;">${translations[currentLang].privacy_text}</p>
+        <div style="margin-top:20px; text-align:right;"><button class="btn-main" onclick="closeModal()">OK</button></div>`;
+    }
+    document.getElementById('modalContainer').style.display = 'flex';
+    if (type === 'import') document.getElementById('importArea').focus();
+  }
+
+  function closeModal() { document.getElementById('modalContainer').style.display = 'none'; }
 
   function importFromText() {
     const text = document.getElementById('importArea').value;
@@ -878,58 +900,48 @@
       if (parts.length >= 4) {
         const date = parts[1].trim(); const timeStr = parts[2].trim();
         const rawLap = parseFloat(parts[3].replace(',', '.'));
-        const status = parts[4] ? parts[4].toLowerCase() : 'aktiv';
-        const isActive = status.includes('aktiv') || status.includes('werten') || status.includes('active') || status.includes('valid');
+        const status = parts[4] ? parts[4].toLowerCase() : 'active';
+        const isActive = status.includes('aktiv') || status.includes('active') || status.includes('valid');
         if (!isNaN(rawLap)) {
           state.laps.push({ id: Date.now() + importedCount, rawTime: rawLap, displayTime: rawLap, active: isActive, date: date || new Date().toLocaleDateString('de-DE'), timestamp: timeStr || new Date().toLocaleTimeString('de-DE'), preImg: null, postImg: null });
           importedCount++;
         }
       }
     });
-    if (importedCount > 0) { recalculateAndUI(); closeImportModal(); }
+    if (importedCount > 0) { recalculateAndUI(); closeModal(); }
   }
 
-  function clearSession() { if(confirm(translations[currentLang].confirm_reset)) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace(); } }
+  function clearSession() { if(confirm(translations[currentLang].confirm_reset)) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; recalculateAndUI(); stopRace(); } }
   
   function copyToClipboard() {
-    const activeLaps = state.laps.filter(l => l.active);
+    const activeOnly = state.laps.filter(l => l.active);
     let tableData = currentLang === 'de' ? "Runde\tDatum\tUhrzeit\tRundenzeit (s)\tStatus\n" : "Round\tDate\tTime\tLaptime (s)\tStatus\n";
-    
-    activeLaps.forEach((l, i) => { 
-        const statusLabel = translations[currentLang].table_status_active;
+    activeOnly.forEach((l, i) => { 
         let timeStr = l.displayTime.toFixed(3);
         if (currentLang === 'de') timeStr = timeStr.replace('.', ',');
-        tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${timeStr}\t${statusLabel}\n`; 
+        tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${timeStr}\t${translations[currentLang].table_status_active}\n`; 
     });
-    
     navigator.clipboard.writeText(tableData).then(() => {
-        const btn = document.getElementById('btnCopy'); 
-        const oldTxt = translations[currentLang].btn_copy;
-        btn.innerText = translations[currentLang].btn_copied; 
-        setTimeout(() => btn.innerText = oldTxt, 1500);
+        const btn = document.getElementById('btnCopy'); const oldTxt = translations[currentLang].btn_copy;
+        btn.innerText = translations[currentLang].btn_copied; setTimeout(() => btn.innerText = oldTxt, 1500);
     });
   }
 
   function exportCSV() {
-    const activeLaps = state.laps.filter(l => l.active);
-    if (activeLaps.length === 0) return;
-    
+    const activeOnly = state.laps.filter(l => l.active);
+    if (activeOnly.length === 0) return;
     let csvHeader = currentLang === 'de' ? "Runde;Datum;Uhrzeit;Rundenzeit (s);Status" : "Round;Date;Time;Laptime (s);Status";
     let csvContent = "\uFEFF" + csvHeader + "\n";
-    
-    activeLaps.forEach((l, i) => { 
-        const statusLabel = translations[currentLang].table_status_active;
+    activeOnly.forEach((l, i) => { 
         let timeStr = l.displayTime.toFixed(3);
         if (currentLang === 'de') timeStr = timeStr.replace('.', ',');
-        csvContent += `${i+1};${l.date};${l.timestamp};${timeStr};${statusLabel}\n`; 
+        csvContent += `${i+1};${l.date};${l.timestamp};${timeStr};${translations[currentLang].table_status_active}\n`; 
     });
-    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `FPV_Race_${new Date().toISOString().slice(0,10)}.csv`; link.click();
   }
 
   init();
 </script>
-
 </body>
 </html>
