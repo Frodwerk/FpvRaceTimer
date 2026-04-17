@@ -557,6 +557,24 @@
     audioCtx: null
   };
 
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.log("WakeLock konnte nicht aktiviert werden:", err);
+    }
+  }
+
+  // WakeLock erneuern, falls der Nutzer den Tab kurz wechselt und zurückkehrt
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      requestWakeLock();
+    }
+  });
+
   const video = document.createElement('video');
   const canvas = document.getElementById('raceCanvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -598,6 +616,7 @@
 
   async function init() {
     updateSens(state.sensitivity);
+    requestWakeLock();
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cams = devices.filter(d => d.kind === 'videoinput');
@@ -637,6 +656,7 @@
 
   function handleMainAction() {
     initAudio();
+    requestWakeLock(); // Browser fordern oft eine Nutzer-Interaktion für den WakeLock
     if (state.running || state.armed) stopRace();
     else startCountdown();
   }
@@ -872,11 +892,16 @@
   function clearSession() { if(confirm(translations[currentLang].confirm_reset)) { state.laps = []; state.bestLap = Infinity; state.bestTriple = Infinity; lapTableBody.innerHTML = ''; state.lastPassTime = 0; recalculateAndUI(); stopRace(); } }
   
   function copyToClipboard() {
-    let tableData = "Runde\tDatum\tUhrzeit\tRundenzeit (s)\tStatus\n";
-    state.laps.forEach((l, i) => { 
-        const statusLabel = l.active ? translations[currentLang].table_status_active : translations[currentLang].table_status_passive;
-        tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${l.displayTime.toFixed(3)}\t${statusLabel}\n`; 
+    const activeLaps = state.laps.filter(l => l.active);
+    let tableData = currentLang === 'de' ? "Runde\tDatum\tUhrzeit\tRundenzeit (s)\tStatus\n" : "Round\tDate\tTime\tLaptime (s)\tStatus\n";
+    
+    activeLaps.forEach((l, i) => { 
+        const statusLabel = translations[currentLang].table_status_active;
+        let timeStr = l.displayTime.toFixed(3);
+        if (currentLang === 'de') timeStr = timeStr.replace('.', ',');
+        tableData += `${i+1}\t${l.date}\t${l.timestamp}\t${timeStr}\t${statusLabel}\n`; 
     });
+    
     navigator.clipboard.writeText(tableData).then(() => {
         const btn = document.getElementById('btnCopy'); 
         const oldTxt = translations[currentLang].btn_copy;
@@ -886,13 +911,19 @@
   }
 
   function exportCSV() {
-    if (state.laps.length === 0) return;
+    const activeLaps = state.laps.filter(l => l.active);
+    if (activeLaps.length === 0) return;
+    
     let csvHeader = currentLang === 'de' ? "Runde;Datum;Uhrzeit;Rundenzeit (s);Status" : "Round;Date;Time;Laptime (s);Status";
     let csvContent = "\uFEFF" + csvHeader + "\n";
-    state.laps.forEach((l, i) => { 
-        const statusLabel = l.active ? translations[currentLang].table_status_active : translations[currentLang].table_status_passive;
-        csvContent += `${i+1};${l.date};${l.timestamp};${l.displayTime.toFixed(3).replace('.',',')};${statusLabel}\n`; 
+    
+    activeLaps.forEach((l, i) => { 
+        const statusLabel = translations[currentLang].table_status_active;
+        let timeStr = l.displayTime.toFixed(3);
+        if (currentLang === 'de') timeStr = timeStr.replace('.', ',');
+        csvContent += `${i+1};${l.date};${l.timestamp};${timeStr};${statusLabel}\n`; 
     });
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `FPV_Race_${new Date().toISOString().slice(0,10)}.csv`; link.click();
   }
