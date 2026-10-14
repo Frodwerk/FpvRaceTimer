@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="FPV Pro Race Timer - camera-based race timing for FPV drones, works offline once installed.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>FPV Pro Race Timer - Multilingual</title>
   
   <style>
@@ -626,16 +633,13 @@
     updateSens(state.sensitivity);
     requestWakeLock();
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cams = devices.filter(d => d.kind === 'videoinput');
-      const select = document.getElementById('camSelect');
-      cams.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.deviceId;
-        opt.text = c.label || `Kamera ${select.length + 1}`;
-        select.appendChild(opt);
-      });
-      startStream(cams[0]?.deviceId);
+      await startStream();
+      // enumerate with labels (only possible after permission) and prefer the back camera
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      const curId = window.stream?.getVideoTracks()[0]?.getSettings().deviceId;
+      const back = cams.find(c => /back|rück|rear|environment/i.test(c.label || ''));
+      if (back && back.deviceId !== curId) await startStream(back.deviceId);
+      await refreshCameraList();
     } catch (e) { console.error("Kamerafehler", e); }
     runAnalysisLoop();
     requestAnimationFrame(renderLoop);
@@ -643,6 +647,7 @@
 
   async function startStream(id) {
     if (window.stream) window.stream.getTracks().forEach(t => t.stop());
+    // no facingMode constraint: devices that don't report it would fail or hang
     const constraints = { video: { deviceId: id ? { exact: id } : undefined, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } } };
     try {
         window.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -651,6 +656,22 @@
         window.stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = window.stream; video.play();
     }
+  }
+
+  // only after camera permission is granted do browsers expose all cameras with labels
+  async function refreshCameraList() {
+    const select = document.getElementById('camSelect');
+    const currentId = window.stream?.getVideoTracks()[0]?.getSettings().deviceId;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter(d => d.kind === 'videoinput');
+    select.innerHTML = '';
+    cams.forEach((c, i) => {
+      const opt = document.createElement('option');
+      opt.value = c.deviceId;
+      opt.text = c.label || `Kamera ${i + 1}`;
+      if (c.deviceId === currentId) opt.selected = true;
+      select.appendChild(opt);
+    });
   }
 
   function switchCam(id) { startStream(id); }
@@ -941,6 +962,12 @@
   }
 
   init();
+</script>
+<script>
+  // Register service worker for offline / install-as-app support
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  }
 </script>
 </body>
 </html>
